@@ -289,7 +289,7 @@ function App() {
       <div className="fixed inset-0 z-0 pointer-events-none">
         <Canvas
           camera={{
-            position: [8, 12, 15],
+            position: [6, 9, 12], // Moved camera slightly back
             fov: 45
           }}
           style={{

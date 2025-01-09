@@ -191,7 +191,7 @@ const BlackHoleThree = () => {
   });
 
   return (
-    <group>
+    <group scale={1.2}>
       {/* Static background stars */}
       <points ref={backgroundStarsRef}>
         <bufferGeometry>
