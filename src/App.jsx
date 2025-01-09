@@ -251,14 +251,34 @@ function App() {
     }))
   }
 
+  const getMissionStatus = (mission) => {
+    const now = new Date();
+    const [hours, minutes] = mission.time.split(':').map(Number);
+    const missionTime = new Date(now.setHours(hours, minutes, 0, 0));
+    const endTime = new Date(missionTime.getTime() + mission.duration * 60000);
+    
+    if (mission.status === 'complete') return 'complete';
+    if (now >= missionTime && now <= endTime) return 'active';
+    if (now < missionTime) return 'pending';
+    return 'overdue';
+  };
+
   const getMissionStatusColor = (status) => {
     switch (status) {
-      case 'complete': return 'status-complete'
-      case 'active': return 'status-active'
-      case 'critical': return 'status-critical'
-      default: return 'status-pending'
+      case 'complete': return 'status-complete';
+      case 'active': return 'status-active';
+      case 'overdue': return 'status-critical';
+      default: return 'status-pending';
     }
-  }
+  };
+
+  // Update mission statuses based on current time
+  useEffect(() => {
+    setMissions(missions.map(mission => ({
+      ...mission,
+      status: getMissionStatus(mission)
+    })));
+  }, [currentTime]);
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-space-darker">
@@ -301,8 +321,21 @@ function App() {
                     <span className="text-space-primary">{missions.filter(m => m.status === 'active').length}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span>Pending</span>
+                    <span>Upcoming</span>
                     <span className="text-space-warning">{missions.filter(m => m.status === 'pending').length}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Completed Today</span>
+                    <span className="text-space-success">
+                      {missions.filter(m => 
+                        m.status === 'complete' && 
+                        new Date(m.completedAt).toDateString() === new Date().toDateString()
+                      ).length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm text-space-gray">
+                    <span>Overdue</span>
+                    <span className="text-space-danger">{missions.filter(m => m.status === 'overdue').length}</span>
                   </div>
                 </div>
               </div>
@@ -371,7 +404,7 @@ function App() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
                     >
-                      <div className={`mission-status ${getMissionStatusColor(mission.status)}`} />
+                      <div className={`mission-status ${getMissionStatusColor(getMissionStatus(mission))}`} />
                       
                       {/* Title and Description */}
                       <div className="flex-1 mb-4">

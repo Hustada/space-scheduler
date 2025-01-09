@@ -40,11 +40,12 @@
   }
 
   .status-pending {
-    @apply bg-space-warning animate-pulse;
+    @apply bg-space-warning;
   }
 
   .status-active {
-    @apply bg-space-primary animate-pulse;
+    @apply bg-space-primary;
+    animation: pulse 2s infinite;
   }
 
   .status-complete {
@@ -52,7 +53,23 @@
   }
 
   .status-critical {
-    @apply bg-space-danger animate-pulse-slow;
+    @apply bg-space-danger;
+    animation: pulse 1s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(1.1);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
   .mission-button {
