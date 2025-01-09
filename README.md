@@ -2,6 +2,33 @@
 
 A space-themed task management app specifically designed for people with ADHD. Transform your daily tasks into exciting space missions with an engaging, distraction-minimizing interface.
 
+## Black Hole Visualization 🌌
+
+Our app features a stunning, physically accurate black hole visualization based on real astrophysics:
+
+### Physical Accuracy
+- **Event Horizon**: A true black void where light cannot escape
+- **Accretion Disk**: Super-heated matter orbiting the black hole
+- **Gravitational Lensing**: Light bending effects near the event horizon
+- **Relativistic Effects**: Including blue/redshift of orbiting matter
+
+### Technical Implementation
+- **Three.js & React Three Fiber**: For 3D rendering
+- **Custom GLSL Shaders**: For realistic accretion disk effects
+- **Particle Systems**: Simulating matter falling into the black hole
+- **Dynamic Animations**: 
+  - Rotating accretion disk
+  - Pulsating event horizon
+  - Particle dynamics
+
+### Visual Elements
+- **Event Horizon**: Pure black sphere with perfect light absorption
+- **Accretion Disk**: 
+  - Intense orange-red plasma effect
+  - Dynamic turbulence patterns
+  - Blue/redshift simulation
+- **Particle System**: Dynamic matter flow visualization
+
 ## Why Space Mission Control? 🧠
 
 Designed with ADHD brains in mind:
