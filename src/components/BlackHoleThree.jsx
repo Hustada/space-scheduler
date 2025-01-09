@@ -1,6 +1,5 @@
 import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Points } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Custom shader for the accretion disk
@@ -86,8 +85,23 @@ const BlackHoleThree = () => {
   const eventHorizonRef = useRef();
   const timeRef = useRef(0);
   const particlesRef = useRef();
+  const backgroundStarsRef = useRef();
 
-  // Create a particle system
+  // Create background star field (static, far away)
+  const backgroundStarPositions = useMemo(() => {
+    const positions = new Float32Array(3000 * 3);
+    for (let i = 0; i < positions.length; i += 3) {
+      const r = 25 + Math.random() * 10; // Much further away
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos((Math.random() * 2) - 1);
+      positions[i] = r * Math.sin(phi) * Math.cos(theta);
+      positions[i + 1] = r * Math.sin(phi) * Math.sin(theta);
+      positions[i + 2] = r * Math.cos(phi);
+    }
+    return positions;
+  }, []);
+
+  // Create particle system for gravitational lensing
   const particlePositions = useMemo(() => {
     const positions = new Float32Array(2000 * 3);
     for (let i = 0; i < positions.length; i += 3) {
@@ -104,9 +118,9 @@ const BlackHoleThree = () => {
   useFrame((state, delta) => {
     timeRef.current += delta;
 
-    // Rotate accretion disk
+    // Update shader uniforms
     if (accretionDiskRef.current) {
-      accretionDiskRef.current.rotation.z += delta * 0.4;
+      accretionDiskRef.current.material.uniforms.time.value = timeRef.current;
     }
 
     // Rotate photon sphere in opposite direction
@@ -118,6 +132,11 @@ const BlackHoleThree = () => {
     if (eventHorizonRef.current) {
       const scale = 1 + Math.sin(timeRef.current * 3) * 0.02;
       eventHorizonRef.current.scale.set(scale, scale, scale);
+    }
+
+    // Slowly rotate background stars
+    if (backgroundStarsRef.current) {
+      backgroundStarsRef.current.rotation.y += delta * 0.02;
     }
 
     // Animate particles
@@ -151,6 +170,26 @@ const BlackHoleThree = () => {
 
   return (
     <group>
+      {/* Static background stars */}
+      <points ref={backgroundStarsRef}>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            count={backgroundStarPositions.length / 3}
+            array={backgroundStarPositions}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <pointsMaterial
+          size={0.015}
+          color={new THREE.Color(1.0, 1.0, 1.0)}
+          transparent={true}
+          opacity={0.7}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </points>
+
       {/* Pure black void */}
       <mesh ref={eventHorizonRef}>
         <sphereGeometry args={[1.2, 64, 64]} />

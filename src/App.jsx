@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { v4 as uuidv4 } from 'uuid'
 import { ClockIcon, RocketLaunchIcon, CheckCircleIcon, XCircleIcon, ArrowUturnLeftIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
+import { Link } from 'react-router-dom'
+import { Canvas } from '@react-three/fiber'
+import BlackHoleThree from './components/BlackHoleThree'
 
 // Sample mission data
 const initialMissions = [
@@ -282,9 +285,39 @@ function App() {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-space-darker">
+      {/* Navigation */}
+      <div className="fixed top-4 right-4 z-50">
+        <Link 
+          to="/black-hole-test"
+          className="px-4 py-2 rounded-md bg-space-primary/20 text-space-primary border border-space-primary/30 hover:bg-space-primary/30"
+        >
+          View Black Hole
+        </Link>
+      </div>
+
       {/* Background Grid */}
       <div className="fixed inset-0 w-full h-full">
         <div className="grid-bg" />
+      </div>
+
+      {/* Black Hole Background */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: -1,
+        pointerEvents: 'none'
+      }}>
+        <Canvas
+          camera={{
+            position: [8, 12, 15],
+            fov: 45
+          }}
+        >
+          <BlackHoleThree />
+        </Canvas>
       </div>
 
       {/* Main Content */}
