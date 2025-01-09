@@ -1,52 +1,92 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { PlayIcon, PauseIcon, StopIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
-const TIMER_STATES = {
-  WORK: 'work',
-  SHORT_BREAK: 'shortBreak',
-  LONG_BREAK: 'longBreak',
-  IDLE: 'idle'
-};
+const DEFAULT_WORK_TIME = 25 * 60; // 25 minutes in seconds
+const DEFAULT_BREAK_TIME = 5 * 60; // 5 minutes in seconds
 
-const DEFAULT_TIMES = {
-  [TIMER_STATES.WORK]: 25 * 60,
-  [TIMER_STATES.SHORT_BREAK]: 5 * 60,
-  [TIMER_STATES.LONG_BREAK]: 15 * 60
-};
-
-export default function PomodoroTimer() {
-  const [timerState, setTimerState] = useState(TIMER_STATES.IDLE);
-  const [timeLeft, setTimeLeft] = useState(DEFAULT_TIMES[TIMER_STATES.WORK]);
+export default function PomodoroTimer({ activeMission }) {
+  const [timeLeft, setTimeLeft] = useState(DEFAULT_WORK_TIME);
   const [isRunning, setIsRunning] = useState(false);
-  const [workSessionsCompleted, setWorkSessionsCompleted] = useState(0);
+  const [isBreak, setIsBreak] = useState(false);
+  const timerRef = useRef(null);
+  const prevMissionRef = useRef(null);
 
+  // Handle mission changes
   useEffect(() => {
-    let interval;
-    if (isRunning && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft(prev => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
-      handleTimerComplete();
+    if (activeMission && activeMission.id !== prevMissionRef.current) {
+      // New mission started
+      clearInterval(timerRef.current);
+      const duration = activeMission.duration * 60;
+      setTimeLeft(duration);
+      setIsBreak(false);
+      setIsRunning(true);
+      startTimer(duration);
+      prevMissionRef.current = activeMission.id;
+    } else if (!activeMission && prevMissionRef.current) {
+      // Mission completed or cleared
+      clearInterval(timerRef.current);
+      setTimeLeft(DEFAULT_WORK_TIME);
+      setIsBreak(false);
+      setIsRunning(false);
+      prevMissionRef.current = null;
     }
-    return () => clearInterval(interval);
-  }, [isRunning, timeLeft]);
+  }, [activeMission]);
 
-  const handleTimerComplete = () => {
-    if (timerState === TIMER_STATES.WORK) {
-      setWorkSessionsCompleted(prev => prev + 1);
-      if (workSessionsCompleted % 4 === 3) {
-        setTimerState(TIMER_STATES.LONG_BREAK);
-        setTimeLeft(DEFAULT_TIMES[TIMER_STATES.LONG_BREAK]);
-      } else {
-        setTimerState(TIMER_STATES.SHORT_BREAK);
-        setTimeLeft(DEFAULT_TIMES[TIMER_STATES.SHORT_BREAK]);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
       }
-    } else {
-      setTimerState(TIMER_STATES.WORK);
-      setTimeLeft(DEFAULT_TIMES[TIMER_STATES.WORK]);
+    };
+  }, []);
+
+  const startTimer = (initialTime) => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
     }
+    
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          setIsRunning(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handlePlayPause = () => {
+    if (isRunning) {
+      clearInterval(timerRef.current);
+      setIsRunning(false);
+    } else {
+      setIsRunning(true);
+      startTimer(timeLeft);
+    }
+  };
+
+  const handleReset = () => {
+    clearInterval(timerRef.current);
     setIsRunning(false);
+    if (activeMission) {
+      setTimeLeft(activeMission.duration * 60);
+    } else {
+      setTimeLeft(isBreak ? DEFAULT_BREAK_TIME : DEFAULT_WORK_TIME);
+    }
+  };
+
+  const toggleMode = () => {
+    if (!activeMission) {
+      clearInterval(timerRef.current);
+      setIsRunning(false);
+      const newIsBreak = !isBreak;
+      setIsBreak(newIsBreak);
+      setTimeLeft(newIsBreak ? DEFAULT_BREAK_TIME : DEFAULT_WORK_TIME);
+    }
   };
 
   const formatTime = (seconds) => {
@@ -55,30 +95,17 @@ export default function PomodoroTimer() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getTimerColor = () => {
-    switch (timerState) {
-      case TIMER_STATES.WORK:
-        return 'text-space-primary';
-      case TIMER_STATES.SHORT_BREAK:
-        return 'text-space-success';
-      case TIMER_STATES.LONG_BREAK:
-        return 'text-space-accent';
-      default:
-        return 'text-space-light';
-    }
-  };
-
-  const progress = 1 - (timeLeft / DEFAULT_TIMES[timerState || TIMER_STATES.WORK]);
+  const progress = activeMission 
+    ? 1 - (timeLeft / (activeMission.duration * 60))
+    : 1 - (timeLeft / (isBreak ? DEFAULT_BREAK_TIME : DEFAULT_WORK_TIME));
 
   return (
-    <div className="flex flex-col items-center space-y-4">
-      <div className="relative">
-        {/* Progress Circle */}
+    <div className="flex flex-col items-center justify-center w-full max-w-xs mx-auto">
+      <div className="relative w-32 h-32 mb-4">
         <svg 
-          className="w-32 h-32 transform -rotate-90"
+          className="w-full h-full transform -rotate-90"
           viewBox="0 0 100 100"
         >
-          {/* Background circle */}
           <circle
             className="text-space-darker/20"
             strokeWidth="2"
@@ -89,9 +116,14 @@ export default function PomodoroTimer() {
             cy="50"
           />
           
-          {/* Progress circle */}
           <motion.circle
-            className={getTimerColor()}
+            className={`${
+              timeLeft === 0 
+                ? "text-red-400" 
+                : isBreak 
+                  ? "text-green-400" 
+                  : "text-space-primary"
+            }`}
             strokeWidth="2"
             stroke="currentColor"
             fill="transparent"
@@ -101,11 +133,17 @@ export default function PomodoroTimer() {
             strokeDasharray="301.59"
             strokeDashoffset={301.59 * (1 - progress)}
             initial={{ strokeDashoffset: 301.59 }}
-            animate={{ strokeDashoffset: 301.59 * (1 - progress) }}
-            transition={{ duration: 0.5, ease: "linear" }}
+            animate={{ 
+              strokeDashoffset: 301.59 * (1 - progress),
+              stroke: timeLeft < 60 ? ["#f87171", "#60a5fa"] : undefined
+            }}
+            transition={{ 
+              duration: 0.5, 
+              ease: "linear",
+              stroke: { duration: 1, repeat: timeLeft < 60 ? Infinity : 0 }
+            }}
           />
 
-          {/* Inner circle */}
           <circle
             className="text-space-darker/30"
             fill="currentColor"
@@ -115,42 +153,67 @@ export default function PomodoroTimer() {
           />
         </svg>
 
-        {/* Timer Text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <motion.div 
-            className={`text-3xl font-space font-bold ${getTimerColor()}`}
-            animate={{ scale: isRunning ? [1, 1.02, 1] : 1 }}
-            transition={{ duration: 1, repeat: isRunning ? Infinity : 0 }}
+            className={`text-3xl font-space font-bold ${
+              timeLeft === 0 
+                ? "text-red-400" 
+                : isBreak 
+                  ? "text-green-400" 
+                  : "text-space-primary"
+            }`}
+            animate={{ 
+              scale: isRunning ? [1, 1.02, 1] : 1,
+              opacity: timeLeft < 60 ? [1, 0.7, 1] : 1
+            }}
+            transition={{ 
+              duration: timeLeft < 60 ? 0.5 : 1, 
+              repeat: Infinity 
+            }}
           >
             {formatTime(timeLeft)}
           </motion.div>
           <div className="text-sm text-space-gray mt-1">
-            {timerState === TIMER_STATES.WORK ? (
-              `Session ${workSessionsCompleted + 1}/4`
-            ) : (
-              `${timerState === TIMER_STATES.SHORT_BREAK ? 'Short' : 'Long'} Break`
-            )}
+            {activeMission ? activeMission.title : (isBreak ? 'Break Time' : 'Work Time')}
           </div>
         </div>
       </div>
       
-      <div className="flex space-x-4">
+      <div className="flex justify-center space-x-2">
         <button
-          onClick={() => setIsRunning(!isRunning)}
-          className="mission-button px-6"
+          onClick={handlePlayPause}
+          className={`mission-button px-4 flex items-center gap-2 ${
+            !isRunning ? 'bg-space-primary/20 hover:bg-space-primary/40' : ''
+          }`}
         >
-          {isRunning ? 'Pause' : 'Start'}
+          {isRunning ? (
+            <>
+              <PauseIcon className="h-4 w-4" />
+              Pause
+            </>
+          ) : (
+            <>
+              <PlayIcon className="h-4 w-4" />
+              {timeLeft === 0 ? 'Start' : 'Resume'}
+            </>
+          )}
         </button>
         <button
-          onClick={() => {
-            setTimerState(TIMER_STATES.WORK);
-            setTimeLeft(DEFAULT_TIMES[TIMER_STATES.WORK]);
-            setIsRunning(false);
-          }}
-          className="mission-button px-6"
+          onClick={handleReset}
+          className="mission-button px-4 flex items-center gap-2 bg-space-darker/40 hover:bg-space-darker/60"
         >
+          <StopIcon className="h-4 w-4" />
           Reset
         </button>
+        {!activeMission && (
+          <button
+            onClick={toggleMode}
+            className="mission-button px-4 flex items-center gap-2 bg-space-darker/40 hover:bg-space-darker/60"
+          >
+            <ArrowPathIcon className="h-4 w-4" />
+            {isBreak ? 'Work' : 'Break'}
+          </button>
+        )}
       </div>
     </div>
   );

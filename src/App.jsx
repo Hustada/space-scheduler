@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { v4 as uuidv4 } from 'uuid'
-import { ClockIcon, RocketLaunchIcon, CheckCircleIcon, XCircleIcon, ArrowUturnLeftIcon, ArrowPathIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import { ClockIcon, RocketLaunchIcon, CheckCircleIcon, XCircleIcon, ArrowUturnLeftIcon, ArrowPathIcon, ChevronDownIcon, PlayIcon } from '@heroicons/react/24/outline'
 import { Link } from 'react-router-dom'
 import { Canvas } from '@react-three/fiber'
 import BlackHoleThree from './components/BlackHoleThree'
@@ -206,6 +206,8 @@ function App() {
   const [showMissionLog, setShowMissionLog] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationMessage, setCelebrationMessage] = useState('');
+  const [activeMission, setActiveMission] = useState(null);
+  const [missionStartTime, setMissionStartTime] = useState(null);
 
   // Update current time
   useEffect(() => {
@@ -216,12 +218,58 @@ function App() {
     return () => clearInterval(timer)
   }, [])
 
+  const handleMissionStart = (id) => {
+    // Check if any mission is already in progress
+    const hasActiveMission = missions.some(m => m.status === 'in-progress');
+    if (hasActiveMission) {
+      // Could add a toast notification here if you want to show an error
+      return;
+    }
+
+    setMissions(missions.map(mission => {
+      if (mission.id === id) {
+        const startTime = new Date().toISOString();
+        setActiveMission(id);
+        setMissionStartTime(startTime);
+        return { ...mission, status: 'in-progress', startTime };
+      }
+      return mission;
+    }));
+  };
+
   const handleMissionComplete = (id) => {
-    setMissions(missions.map(mission => 
-      mission.id === id 
-        ? { ...mission, status: 'complete', completedAt: new Date().toISOString() }
-        : mission
-    ));
+    const completedAt = new Date().toISOString();
+    
+    setMissions(missions.map(mission => {
+      if (mission.id === id) {
+        // Calculate actual duration in minutes
+        const startTime = new Date(mission.startTime);
+        const endTime = new Date(completedAt);
+        const actualDuration = Math.round((endTime - startTime) / (1000 * 60));
+
+        // Store the mission data for AI analysis
+        const missionData = {
+          ...mission,
+          status: 'complete',
+          completedAt,
+          actualDuration,
+          estimatedDuration: mission.duration
+        };
+
+        // Store in localStorage for analysis
+        const missionHistory = JSON.parse(localStorage.getItem('missionHistory') || '[]');
+        missionHistory.push(missionData);
+        localStorage.setItem('missionHistory', JSON.stringify(missionHistory));
+
+        setActiveMission(null);
+        setMissionStartTime(null);
+        
+        return missionData;
+      }
+      return mission;
+    }));
+
+    // Show celebration
     setCelebrationMessage('Mission Accomplished! 🚀');
     setShowCelebration(true);
     setTimeout(() => setShowCelebration(false), 3000);
@@ -265,22 +313,15 @@ function App() {
   }
 
   const getMissionStatus = (mission) => {
-    const now = new Date();
-    const [hours, minutes] = mission.time.split(':').map(Number);
-    const missionTime = new Date(now.setHours(hours, minutes, 0, 0));
-    const endTime = new Date(missionTime.getTime() + mission.duration * 60000);
-    
     if (mission.status === 'complete') return 'complete';
-    if (now >= missionTime && now <= endTime) return 'active';
-    if (now < missionTime) return 'pending';
-    return 'overdue';
+    if (mission.status === 'in-progress') return 'in-progress';
+    return 'pending';
   };
 
-  const getMissionStatusColor = (status) => {
+  const getMissionStatusClass = (status) => {
     switch (status) {
       case 'complete': return 'status-complete';
-      case 'active': return 'status-active';
-      case 'overdue': return 'status-critical';
+      case 'in-progress': return 'status-in-progress';
       default: return 'status-pending';
     }
   };
@@ -302,6 +343,10 @@ function App() {
       category: template.category
     });
     setShowMissionForm(true);
+  };
+
+  const getMissionHistory = () => {
+    return JSON.parse(localStorage.getItem('missionHistory') || '[]');
   };
 
   return (
@@ -356,9 +401,11 @@ function App() {
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="mission-panel">
+              <div className="mission-panel flex flex-col items-center">
                 <h2 className="text-xl font-bold mb-4 text-space-primary">Focus Timer</h2>
-                <PomodoroTimer />
+                <PomodoroTimer 
+                  activeMission={missions.find(m => m.status === 'in-progress')} 
+                />
               </div>
               
               <div className="mission-panel">
@@ -539,7 +586,7 @@ function App() {
                           exit={{ opacity: 0, y: -20 }}
                           transition={{ duration: 0.3 }}
                         >
-                          <div className={`mission-status ${getMissionStatusColor(getMissionStatus(mission))}`} />
+                          <div className={`mission-status ${getMissionStatusClass(getMissionStatus(mission))}`} />
                           
                           {/* Title and Description */}
                           <div className="flex-1 mb-4">
@@ -562,12 +609,34 @@ function App() {
                           {/* Action Button */}
                           <div className="flex justify-end">
                             <button
-                              className="mission-button w-full sm:w-auto"
-                              onClick={() => handleMissionComplete(mission.id)}
+                              onClick={() => mission.status === 'pending' 
+                                ? handleMissionStart(mission.id)
+                                : handleMissionComplete(mission.id)
+                              }
+                              className={`mission-button w-full sm:w-auto ${
+                                mission.status === 'in-progress' 
+                                  ? 'bg-red-500/20 hover:bg-red-500/40 text-red-400' 
+                                  : missions.some(m => m.status === 'in-progress')
+                                    ? 'opacity-50 cursor-not-allowed'
+                                    : ''
+                              }`}
+                              disabled={mission.status === 'pending' && missions.some(m => m.status === 'in-progress')}
                             >
                               <span className="flex items-center justify-center gap-2">
-                                <CheckCircleIcon className="h-4 w-4" />
-                                Complete
+                                {mission.status === 'pending' ? (
+                                  <>
+                                    <PlayIcon className="h-4 w-4" />
+                                    {missions.some(m => m.status === 'in-progress') 
+                                      ? 'Mission in Progress'
+                                      : 'Start'
+                                    }
+                                  </>
+                                ) : mission.status === 'in-progress' ? (
+                                  <>
+                                    <CheckCircleIcon className="h-4 w-4" />
+                                    Complete
+                                  </>
+                                ) : null}
                               </span>
                             </button>
                           </div>
