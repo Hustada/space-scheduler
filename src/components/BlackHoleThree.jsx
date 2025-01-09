@@ -83,7 +83,6 @@ const BlackHoleThree = () => {
   const accretionDiskRef = useRef();
   const photonSphereRef = useRef();
   const eventHorizonRef = useRef();
-  const timeRef = useRef(0);
   const particlesRef = useRef();
   const backgroundStarsRef = useRef();
 
@@ -91,7 +90,7 @@ const BlackHoleThree = () => {
   const backgroundStarPositions = useMemo(() => {
     const positions = new Float32Array(3000 * 3);
     for (let i = 0; i < positions.length; i += 3) {
-      const r = 25 + Math.random() * 10; // Much further away
+      const r = 25 + Math.random() * 10;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos((Math.random() * 2) - 1);
       positions[i] = r * Math.sin(phi) * Math.cos(theta);
@@ -115,56 +114,79 @@ const BlackHoleThree = () => {
     return positions;
   }, []);
 
+  // Create shader material with useMemo
+  const diskMaterial = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      vertexShader: diskVertexShader,
+      fragmentShader: diskFragmentShader,
+      uniforms: {
+        time: { value: 0 },
+        color: { value: new THREE.Color(1.8, 0.8, 0.2) }
+      },
+      transparent: true,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+  }, []);
+
   useFrame((state, delta) => {
-    timeRef.current += delta;
+    const time = state.clock.getElapsedTime();
+    
+    // Update accretion disk shader
+    diskMaterial.uniforms.time.value = time;
+    diskMaterial.uniformsNeedUpdate = true;
 
-    // Update shader uniforms
-    if (accretionDiskRef.current) {
-      accretionDiskRef.current.material.uniforms.time.value = timeRef.current;
-    }
-
-    // Rotate photon sphere in opposite direction
+    // Rotate photon sphere
     if (photonSphereRef.current) {
       photonSphereRef.current.rotation.z -= delta * 0.6;
     }
 
     // Pulsate event horizon
     if (eventHorizonRef.current) {
-      const scale = 1 + Math.sin(timeRef.current * 3) * 0.02;
+      const scale = 1 + Math.sin(time * 3) * 0.02;
       eventHorizonRef.current.scale.set(scale, scale, scale);
     }
 
-    // Slowly rotate background stars
+    // Rotate background stars
     if (backgroundStarsRef.current) {
       backgroundStarsRef.current.rotation.y += delta * 0.02;
     }
 
-    // Animate particles
+    // Update particle positions
     if (particlesRef.current) {
       particlesRef.current.rotation.y += delta * 0.1;
       const positions = particlesRef.current.geometry.attributes.position.array;
+      let needsUpdate = false;
+
       for (let i = 0; i < positions.length; i += 3) {
         const x = positions[i];
         const y = positions[i + 1];
         const z = positions[i + 2];
         const dist = Math.sqrt(x * x + y * y + z * z);
+
         if (dist < 2) {
-          // Reset particles that get too close to the black hole
+          // Reset particles that get too close
           const r = 10 + Math.random() * 5;
           const theta = Math.random() * Math.PI * 2;
           const phi = Math.acos((Math.random() * 2) - 1);
           positions[i] = r * Math.sin(phi) * Math.cos(theta);
           positions[i + 1] = r * Math.sin(phi) * Math.sin(theta);
           positions[i + 2] = r * Math.cos(phi);
+          needsUpdate = true;
         } else {
           // Move particles towards the black hole
           const factor = delta * (3 / dist);
           positions[i] -= x * factor;
           positions[i + 1] -= y * factor;
           positions[i + 2] -= z * factor;
+          needsUpdate = true;
         }
       }
-      particlesRef.current.geometry.attributes.position.needsUpdate = true;
+
+      if (needsUpdate) {
+        particlesRef.current.geometry.attributes.position.needsUpdate = true;
+      }
     }
   });
 
@@ -215,21 +237,10 @@ const BlackHoleThree = () => {
         />
       </mesh>
 
-      {/* Accretion Disk - extremely close and bright */}
+      {/* Accretion Disk */}
       <mesh ref={accretionDiskRef} rotation={[Math.PI / 2, 0, 0]}>
         <ringGeometry args={[1.201, 2.5, 180, 8]} />
-        <shaderMaterial
-          vertexShader={diskVertexShader}
-          fragmentShader={diskFragmentShader}
-          uniforms={{
-            time: { value: timeRef.current },
-            color: { value: new THREE.Color(1.8, 0.8, 0.2) }
-          }}
-          transparent={true}
-          side={THREE.DoubleSide}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
+        <primitive object={diskMaterial} attach="material" />
       </mesh>
 
       {/* Brighter outer glow */}
@@ -244,7 +255,7 @@ const BlackHoleThree = () => {
         />
       </mesh>
 
-      {/* Brighter particles */}
+      {/* Gravitational lensing particles */}
       <points ref={particlesRef}>
         <bufferGeometry>
           <bufferAttribute
