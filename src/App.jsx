@@ -5,6 +5,10 @@ import { ClockIcon, RocketLaunchIcon, CheckCircleIcon, XCircleIcon, ArrowUturnLe
 import { Link } from 'react-router-dom'
 import { Canvas } from '@react-three/fiber'
 import BlackHoleThree from './components/BlackHoleThree'
+import PomodoroTimer from './components/adhd/PomodoroTimer';
+import StreakCounter from './components/adhd/StreakCounter';
+import MissionTemplates from './components/adhd/MissionTemplates';
+import Celebration from './components/adhd/Celebration';
 
 // Sample mission data
 const initialMissions = [
@@ -200,6 +204,8 @@ function App() {
     recurringDays: []
   })
   const [showMissionLog, setShowMissionLog] = useState(false)
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationMessage, setCelebrationMessage] = useState('');
 
   // Update current time
   useEffect(() => {
@@ -216,6 +222,9 @@ function App() {
         ? { ...mission, status: 'complete', completedAt: new Date().toISOString() }
         : mission
     ));
+    setCelebrationMessage('Mission Accomplished! 🚀');
+    setShowCelebration(true);
+    setTimeout(() => setShowCelebration(false), 3000);
   };
 
   const handleMissionRevert = (id) => {
@@ -284,6 +293,17 @@ function App() {
     })));
   }, [currentTime]);
 
+  const handleTemplateSelect = (template) => {
+    setNewMission({
+      ...newMission,
+      title: template.title,
+      description: template.description,
+      duration: template.duration,
+      category: template.category
+    });
+    setShowMissionForm(true);
+  };
+
   return (
     <div className="h-screen w-screen overflow-hidden bg-space-darker">
       {/* Black Hole Background */}
@@ -334,6 +354,23 @@ function App() {
                 Orbital Time: {currentTime.toLocaleTimeString()}
               </p>
             </header>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="mission-panel">
+                <h2 className="text-xl font-bold mb-4 text-space-primary">Focus Timer</h2>
+                <PomodoroTimer />
+              </div>
+              
+              <div className="mission-panel">
+                <h2 className="text-xl font-bold mb-4 text-space-primary">Mission Streaks</h2>
+                <StreakCounter missions={missions} />
+              </div>
+              
+              <div className="mission-panel">
+                <h2 className="text-xl font-bold mb-4 text-space-primary">Quick Missions</h2>
+                <MissionTemplates onSelectTemplate={handleTemplateSelect} />
+              </div>
+            </div>
 
             {/* Main Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -706,6 +743,11 @@ function App() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <Celebration 
+          show={showCelebration}
+          message={celebrationMessage}
+        />
       </div>
     </div>
   )
