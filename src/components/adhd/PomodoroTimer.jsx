@@ -9,9 +9,9 @@ const TIMER_STATES = {
 };
 
 const DEFAULT_TIMES = {
-  [TIMER_STATES.WORK]: 25 * 60, // 25 minutes in seconds
-  [TIMER_STATES.SHORT_BREAK]: 5 * 60, // 5 minutes
-  [TIMER_STATES.LONG_BREAK]: 15 * 60 // 15 minutes
+  [TIMER_STATES.WORK]: 25 * 60,
+  [TIMER_STATES.SHORT_BREAK]: 5 * 60,
+  [TIMER_STATES.LONG_BREAK]: 15 * 60
 };
 
 export default function PomodoroTimer() {
@@ -35,7 +35,6 @@ export default function PomodoroTimer() {
   const handleTimerComplete = () => {
     if (timerState === TIMER_STATES.WORK) {
       setWorkSessionsCompleted(prev => prev + 1);
-      // After 4 work sessions, take a long break
       if (workSessionsCompleted % 4 === 3) {
         setTimerState(TIMER_STATES.LONG_BREAK);
         setTimeLeft(DEFAULT_TIMES[TIMER_STATES.LONG_BREAK]);
@@ -69,20 +68,76 @@ export default function PomodoroTimer() {
     }
   };
 
+  const progress = 1 - (timeLeft / DEFAULT_TIMES[timerState || TIMER_STATES.WORK]);
+
   return (
     <div className="flex flex-col items-center space-y-4">
-      <motion.div 
-        className={`text-4xl font-space font-bold ${getTimerColor()}`}
-        animate={{ scale: isRunning ? [1, 1.05, 1] : 1 }}
-        transition={{ duration: 1, repeat: isRunning ? Infinity : 0 }}
-      >
-        {formatTime(timeLeft)}
-      </motion.div>
+      <div className="relative">
+        {/* Progress Circle */}
+        <svg 
+          className="w-32 h-32 transform -rotate-90"
+          viewBox="0 0 100 100"
+        >
+          {/* Background circle */}
+          <circle
+            className="text-space-darker/20"
+            strokeWidth="2"
+            stroke="currentColor"
+            fill="transparent"
+            r="48"
+            cx="50"
+            cy="50"
+          />
+          
+          {/* Progress circle */}
+          <motion.circle
+            className={getTimerColor()}
+            strokeWidth="2"
+            stroke="currentColor"
+            fill="transparent"
+            r="48"
+            cx="50"
+            cy="50"
+            strokeDasharray="301.59"
+            strokeDashoffset={301.59 * (1 - progress)}
+            initial={{ strokeDashoffset: 301.59 }}
+            animate={{ strokeDashoffset: 301.59 * (1 - progress) }}
+            transition={{ duration: 0.5, ease: "linear" }}
+          />
+
+          {/* Inner circle */}
+          <circle
+            className="text-space-darker/30"
+            fill="currentColor"
+            r="44"
+            cx="50"
+            cy="50"
+          />
+        </svg>
+
+        {/* Timer Text */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <motion.div 
+            className={`text-3xl font-space font-bold ${getTimerColor()}`}
+            animate={{ scale: isRunning ? [1, 1.02, 1] : 1 }}
+            transition={{ duration: 1, repeat: isRunning ? Infinity : 0 }}
+          >
+            {formatTime(timeLeft)}
+          </motion.div>
+          <div className="text-sm text-space-gray mt-1">
+            {timerState === TIMER_STATES.WORK ? (
+              `Session ${workSessionsCompleted + 1}/4`
+            ) : (
+              `${timerState === TIMER_STATES.SHORT_BREAK ? 'Short' : 'Long'} Break`
+            )}
+          </div>
+        </div>
+      </div>
       
       <div className="flex space-x-4">
         <button
           onClick={() => setIsRunning(!isRunning)}
-          className="mission-button"
+          className="mission-button px-6"
         >
           {isRunning ? 'Pause' : 'Start'}
         </button>
@@ -92,18 +147,10 @@ export default function PomodoroTimer() {
             setTimeLeft(DEFAULT_TIMES[TIMER_STATES.WORK]);
             setIsRunning(false);
           }}
-          className="mission-button"
+          className="mission-button px-6"
         >
           Reset
         </button>
-      </div>
-
-      <div className="text-space-gray text-sm">
-        {timerState === TIMER_STATES.WORK ? (
-          `Focus Session ${workSessionsCompleted + 1}/4`
-        ) : (
-          `${timerState === TIMER_STATES.SHORT_BREAK ? 'Short' : 'Long'} Break`
-        )}
       </div>
     </div>
   );
