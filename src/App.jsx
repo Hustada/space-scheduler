@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { v4 as uuidv4 } from 'uuid'
-import { ClockIcon, RocketLaunchIcon, CheckCircleIcon, XCircleIcon, ArrowUturnLeftIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
+import { ClockIcon, RocketLaunchIcon, CheckCircleIcon, XCircleIcon, ArrowUturnLeftIcon, ArrowPathIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
 import { Link } from 'react-router-dom'
 import { Canvas } from '@react-three/fiber'
 import BlackHoleThree from './components/BlackHoleThree'
@@ -199,6 +199,7 @@ function App() {
     isRecurring: false,
     recurringDays: []
   })
+  const [showMissionLog, setShowMissionLog] = useState(false)
 
   // Update current time
   useEffect(() => {
@@ -370,16 +371,16 @@ function App() {
                   </div>
                 </div>
 
-                {/* Mission Log Section */}
-                <div className="mission-panel">
-                  <h2 className="text-xl font-bold mb-4 text-space-primary">Mission Log</h2>
+                {/* Desktop Mission Log */}
+                <div className="mission-panel hidden md:block">
+                  <h2 className="text-xl font-bold mb-4 text-space-primary">Mission Logs</h2>
                   <div className="space-y-3">
                     {missions.filter(m => m.status === 'complete')
                       .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
                       .slice(0, 5)
                       .map(mission => (
                         <div key={mission.id} className="p-3 bg-space-darker/50 rounded-lg border border-space-gray/20">
-                          <h3 className="text-sm font-space mb-1">{mission.title}</h3>
+                          <h3 className="text-sm font-space mb-1 text-space-light">{mission.title}</h3>
                           {mission.isRecurring && (
                             <div className="flex items-center gap-1 text-xs text-space-success mb-2">
                               <ArrowPathIcon className="h-3 w-3" />
@@ -403,6 +404,63 @@ function App() {
                     ))}
                   </div>
                 </div>
+
+                {/* Mobile Mission Log */}
+                {missions.filter(m => m.status === 'complete').length > 0 && (
+                  <div className="order-2 md:hidden">
+                    <div className="mission-card">
+                      <button 
+                        onClick={() => setShowMissionLog(!showMissionLog)}
+                        className="w-full flex items-center justify-between text-xl font-bold text-space-light bg-space-darker/10 rounded-lg p-3 border border-space-gray/20"
+                      >
+                        <span>Mission Logs</span>
+                        <ChevronDownIcon 
+                          className={`h-5 w-5 transition-transform ${showMissionLog ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+                      
+                      <AnimatePresence>
+                        {showMissionLog && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="space-y-3 mt-4 overflow-hidden"
+                          >
+                            {missions.filter(m => m.status === 'complete')
+                              .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+                              .slice(0, 5)
+                              .map(mission => (
+                                <div key={mission.id} className="p-3 bg-space-darker/50 rounded-lg border border-space-gray/20">
+                                  <h3 className="text-sm font-space mb-1 text-space-light">{mission.title}</h3>
+                                  {mission.isRecurring && (
+                                    <div className="flex items-center gap-1 text-xs text-space-success mb-2">
+                                      <ArrowPathIcon className="h-3 w-3" />
+                                      <span>Recurring Mission</span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between items-center text-xs">
+                                    <span className="text-space-gray">
+                                      {new Date(mission.completedAt).toLocaleTimeString()}
+                                    </span>
+                                    <button
+                                      onClick={() => handleMissionRevert(mission.id)}
+                                      className="text-space-primary hover:text-space-primary/80 flex items-center gap-1"
+                                    >
+                                      <ArrowUturnLeftIcon className="h-3 w-3" />
+                                      <span>Revert</span>
+                                    </button>
+                                  </div>
+                                  <p className="text-gray-400 text-sm">{mission.description}</p>
+                                </div>
+                              ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                )}
               </motion.div>
 
               {/* Mission Timeline Panel */}
