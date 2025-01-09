@@ -285,213 +285,204 @@ function App() {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-space-darker">
-      {/* Navigation */}
-      <div className="fixed top-4 right-4 z-50">
-        <Link 
-          to="/black-hole-test"
-          className="px-4 py-2 rounded-md bg-space-primary/20 text-space-primary border border-space-primary/30 hover:bg-space-primary/30"
-        >
-          View Black Hole
-        </Link>
-      </div>
-
-      {/* Background Grid */}
-      <div className="fixed inset-0 w-full h-full">
-        <div className="grid-bg" />
-      </div>
-
       {/* Black Hole Background */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        zIndex: -1,
-        pointerEvents: 'none'
-      }}>
+      <div className="fixed inset-0 z-0 pointer-events-none">
         <Canvas
           camera={{
             position: [8, 12, 15],
             fov: 45
+          }}
+          style={{
+            background: '#000'
           }}
         >
           <BlackHoleThree />
         </Canvas>
       </div>
 
-      {/* Main Content */}
-      <div className="relative h-full w-full overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          {/* Header */}
-          <header className="text-center mb-8">
-            <motion.h1 
-              className="text-4xl md:text-5xl font-bold text-space-primary mb-2 animate-glow"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              Mission Control
-            </motion.h1>
-            <p className="text-space-gray text-lg font-mono">
-              Orbital Time: {currentTime.toLocaleTimeString()}
-            </p>
-          </header>
+      {/* Main Content - above the black hole */}
+      <div className="relative z-10 h-screen overflow-y-auto">
+        {/* Navigation */}
+        <div className="fixed top-4 right-4 z-50">
+          <Link 
+            to="/black-hole-test"
+            className="px-4 py-2 rounded-md bg-space-primary/20 text-space-primary border border-space-primary/30 hover:bg-space-primary/30"
+          >
+            View Black Hole
+          </Link>
+        </div>
 
-          {/* Main Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Mission Stats & Log Panel */}
-            <motion.div 
-              className="space-y-6"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
-              {/* Stats Section */}
-              <div className="mission-panel">
-                <h2 className="text-xl font-bold mb-4 text-space-primary">Mission Stats</h2>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span>Active Missions</span>
-                    <span className="text-space-primary">{missions.filter(m => m.status === 'active').length}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Upcoming</span>
-                    <span className="text-space-warning">{missions.filter(m => m.status === 'pending').length}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Completed Today</span>
-                    <span className="text-space-success">
-                      {missions.filter(m => 
-                        m.status === 'complete' && 
-                        new Date(m.completedAt).toDateString() === new Date().toDateString()
-                      ).length}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm text-space-gray">
-                    <span>Overdue</span>
-                    <span className="text-space-danger">{missions.filter(m => m.status === 'overdue').length}</span>
+        {/* Background Grid */}
+        <div className="fixed inset-0 w-full h-full">
+          <div className="grid-bg" />
+        </div>
+
+        {/* Main Content */}
+        <div className="relative w-full min-h-full">
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            {/* Header */}
+            <header className="text-center mb-8">
+              <motion.h1 
+                className="text-4xl md:text-5xl font-bold text-space-primary mb-2 animate-glow"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                Mission Control
+              </motion.h1>
+              <p className="text-space-gray text-lg font-mono">
+                Orbital Time: {currentTime.toLocaleTimeString()}
+              </p>
+            </header>
+
+            {/* Main Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Mission Stats & Log Panel */}
+              <motion.div 
+                className="space-y-6"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+              >
+                {/* Stats Section */}
+                <div className="mission-panel">
+                  <h2 className="text-xl font-bold mb-4 text-space-primary">Mission Stats</h2>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span>Active Missions</span>
+                      <span className="text-space-primary">{missions.filter(m => m.status === 'active').length}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Upcoming</span>
+                      <span className="text-space-warning">{missions.filter(m => m.status === 'pending').length}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Completed Today</span>
+                      <span className="text-space-success">
+                        {missions.filter(m => 
+                          m.status === 'complete' && 
+                          new Date(m.completedAt).toDateString() === new Date().toDateString()
+                        ).length}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm text-space-gray">
+                      <span>Overdue</span>
+                      <span className="text-space-danger">{missions.filter(m => m.status === 'overdue').length}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Mission Log Section */}
-              <div className="mission-panel">
-                <h2 className="text-xl font-bold mb-4 text-space-primary">Mission Log</h2>
-                <div className="space-y-3">
-                  {missions.filter(m => m.status === 'complete')
-                    .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
-                    .slice(0, 5)
-                    .map(mission => (
-                      <div key={mission.id} className="p-3 bg-space-darker/50 rounded-lg border border-space-gray/20">
-                        <h3 className="text-sm font-space mb-1">{mission.title}</h3>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-space-gray">
-                            {new Date(mission.completedAt).toLocaleTimeString()}
-                          </span>
+                {/* Mission Log Section */}
+                <div className="mission-panel">
+                  <h2 className="text-xl font-bold mb-4 text-space-primary">Mission Log</h2>
+                  <div className="space-y-3">
+                    {missions.filter(m => m.status === 'complete')
+                      .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+                      .slice(0, 5)
+                      .map(mission => (
+                        <div key={mission.id} className="p-3 bg-space-darker/50 rounded-lg border border-space-gray/20">
+                          <h3 className="text-sm font-space mb-1">{mission.title}</h3>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-space-gray">
+                              {new Date(mission.completedAt).toLocaleTimeString()}
+                            </span>
+                            <button
+                              onClick={() => handleMissionRevert(mission.id)}
+                              className="text-space-warning hover:text-space-warning/80 flex items-center gap-1"
+                            >
+                              <ArrowUturnLeftIcon className="h-3 w-3" />
+                              Revert
+                            </button>
+                          </div>
+                        </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Mission Timeline Panel */}
+              <motion.div 
+                className="mission-panel col-span-1 md:col-span-2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-space-primary">Mission Timeline</h2>
+                    <p className="text-sm text-space-gray">
+                      {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
+                    </p>
+                  </div>
+                  <button 
+                    className="mission-button"
+                    onClick={() => setShowMissionForm(true)}
+                  >
+                    <span className="flex items-center gap-2">
+                      <RocketLaunchIcon className="h-4 w-4" />
+                      New Mission
+                    </span>
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  <AnimatePresence>
+                    {missions
+                      .filter(m => m.status !== 'complete')
+                      .map(mission => (
+                      <motion.div
+                        key={mission.id}
+                        className="mission-card"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                      >
+                        <div className={`mission-status ${getMissionStatusColor(getMissionStatus(mission))}`} />
+                        
+                        {/* Title and Description */}
+                        <div className="flex-1 mb-4">
+                          <h3 className="text-lg font-space mb-1 text-gray-200">{mission.title}</h3>
+                          {mission.isRecurring && (
+                            <div className="flex items-center gap-1 text-xs text-space-success mb-2">
+                              <ArrowPathIcon className="h-3 w-3" />
+                              <span>Recurring Mission</span>
+                            </div>
+                          )}
+                          <p className="text-gray-400 text-sm">{mission.description}</p>
+                        </div>
+
+                        {/* Time Info */}
+                        <div className="flex items-center gap-2 text-sm mb-4">
+                          <ClockIcon className="h-4 w-4 text-space-primary" />
+                          <span>{mission.time} ({mission.duration}m)</span>
+                        </div>
+
+                        {/* Action Button */}
+                        <div className="flex justify-end">
                           <button
-                            onClick={() => handleMissionRevert(mission.id)}
-                            className="text-space-warning hover:text-space-warning/80 flex items-center gap-1"
+                            className="mission-button w-full sm:w-auto"
+                            onClick={() => handleMissionComplete(mission.id)}
                           >
-                            <ArrowUturnLeftIcon className="h-3 w-3" />
-                            Revert
+                            <span className="flex items-center justify-center gap-2">
+                              <CheckCircleIcon className="h-4 w-4" />
+                              Complete
+                            </span>
                           </button>
                         </div>
-                      </div>
-                  ))}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
-              </div>
-            </motion.div>
-
-            {/* Mission Timeline Panel */}
-            <motion.div 
-              className="mission-panel col-span-1 md:col-span-2"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <h2 className="text-xl font-bold text-space-primary">Mission Timeline</h2>
-                  <p className="text-sm text-space-gray">
-                    {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
-                  </p>
-                </div>
-                <button 
-                  className="mission-button"
-                  onClick={() => setShowMissionForm(true)}
-                >
-                  <span className="flex items-center gap-2">
-                    <RocketLaunchIcon className="h-4 w-4" />
-                    New Mission
-                  </span>
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <AnimatePresence>
-                  {missions
-                    .filter(m => m.status !== 'complete')
-                    .map(mission => (
-                    <motion.div
-                      key={mission.id}
-                      className="mission-card"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                    >
-                      <div className={`mission-status ${getMissionStatusColor(getMissionStatus(mission))}`} />
-                      
-                      {/* Title and Description */}
-                      <div className="flex-1 mb-4">
-                        <h3 className="text-lg font-space mb-1 text-gray-200">{mission.title}</h3>
-                        {mission.isRecurring && (
-                          <div className="flex items-center gap-1 text-xs text-space-success mb-2">
-                            <ArrowPathIcon className="h-3 w-3" />
-                            <span>Recurring Mission</span>
-                          </div>
-                        )}
-                        <p className="text-gray-400 text-sm">{mission.description}</p>
-                      </div>
-
-                      {/* Time Info */}
-                      <div className="flex items-center gap-2 text-sm mb-4">
-                        <ClockIcon className="h-4 w-4 text-space-primary" />
-                        <span>{mission.time} ({mission.duration}m)</span>
-                      </div>
-
-                      {/* Action Button */}
-                      <div className="flex justify-end">
-                        <button
-                          className="mission-button w-full sm:w-auto"
-                          onClick={() => handleMissionComplete(mission.id)}
-                        >
-                          <span className="flex items-center justify-center gap-2">
-                            <CheckCircleIcon className="h-4 w-4" />
-                            Complete
-                          </span>
-                        </button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Modal */}
-      <AnimatePresence>
-        {showMissionForm && (
-          <motion.div
-            className="fixed inset-0 bg-space-darker/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
+        {/* Modal */}
+        <AnimatePresence>
+          {showMissionForm && (
             <motion.div
-              className="mission-panel w-full max-w-md"
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
+              className="fixed inset-0 bg-space-darker/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
             >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-space-primary">New Mission</h2>
@@ -620,9 +611,9 @@ function App() {
                 </div>
               </form>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }

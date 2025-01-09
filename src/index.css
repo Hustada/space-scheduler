@@ -17,7 +17,7 @@
 
 @layer components {
   .mission-card {
-    @apply relative bg-space-dark/80 border border-space-grid rounded-lg 
+    @apply relative bg-space-dark/40 border border-space-grid rounded-lg 
            p-5 mx-[-0.5rem] md:mx-0 mb-4
            backdrop-blur-sm transition-all duration-300
            hover:border-space-primary/50 hover:shadow-lg hover:shadow-space-primary/20;
@@ -90,7 +90,7 @@
   }
 
   .mission-panel {
-    @apply bg-space-dark/80 border border-space-grid rounded-lg p-6
+    @apply bg-space-dark/40 border border-space-grid rounded-lg p-6
            backdrop-blur-sm;
   }
 
