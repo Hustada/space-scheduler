@@ -372,28 +372,32 @@ function App() {
                       exit={{ opacity: 0, y: -20 }}
                     >
                       <div className={`mission-status ${getMissionStatusColor(mission.status)}`} />
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="text-lg font-space mb-1">{mission.title}</h3>
-                          {mission.isRecurring && (
-                            <div className="flex items-center gap-1 text-xs text-space-success mb-2">
-                              <ArrowPathIcon className="h-3 w-3" />
-                              <span>Recurring Mission</span>
-                            </div>
-                          )}
-                          <p className="text-space-gray text-sm mb-3">{mission.description}</p>
-                        </div>
+                      
+                      {/* Title and Description */}
+                      <div className="flex-1 mb-4">
+                        <h3 className="text-lg font-space mb-1 text-gray-200">{mission.title}</h3>
+                        {mission.isRecurring && (
+                          <div className="flex items-center gap-1 text-xs text-space-success mb-2">
+                            <ArrowPathIcon className="h-3 w-3" />
+                            <span>Recurring Mission</span>
+                          </div>
+                        )}
+                        <p className="text-gray-400 text-sm">{mission.description}</p>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2 text-sm">
-                          <ClockIcon className="h-4 w-4 text-space-primary" />
-                          <span>{mission.time} ({mission.duration}m)</span>
-                        </div>
+
+                      {/* Time Info */}
+                      <div className="flex items-center gap-2 text-sm mb-4">
+                        <ClockIcon className="h-4 w-4 text-space-primary" />
+                        <span>{mission.time} ({mission.duration}m)</span>
+                      </div>
+
+                      {/* Action Button */}
+                      <div className="flex justify-end">
                         <button
-                          className="mission-button"
+                          className="mission-button w-full sm:w-auto"
                           onClick={() => handleMissionComplete(mission.id)}
                         >
-                          <span className="flex items-center gap-2">
+                          <span className="flex items-center justify-center gap-2">
                             <CheckCircleIcon className="h-4 w-4" />
                             Complete
                           </span>
