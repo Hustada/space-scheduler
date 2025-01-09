@@ -380,18 +380,25 @@ function App() {
                       .map(mission => (
                         <div key={mission.id} className="p-3 bg-space-darker/50 rounded-lg border border-space-gray/20">
                           <h3 className="text-sm font-space mb-1">{mission.title}</h3>
+                          {mission.isRecurring && (
+                            <div className="flex items-center gap-1 text-xs text-space-success mb-2">
+                              <ArrowPathIcon className="h-3 w-3" />
+                              <span>Recurring Mission</span>
+                            </div>
+                          )}
                           <div className="flex justify-between items-center text-xs">
                             <span className="text-space-gray">
                               {new Date(mission.completedAt).toLocaleTimeString()}
                             </span>
                             <button
                               onClick={() => handleMissionRevert(mission.id)}
-                              className="text-space-warning hover:text-space-warning/80 flex items-center gap-1"
+                              className="text-space-primary hover:text-space-primary/80 flex items-center gap-1"
                             >
                               <ArrowUturnLeftIcon className="h-3 w-3" />
-                              Revert
+                              <span>Revert</span>
                             </button>
                           </div>
+                          <p className="text-gray-400 text-sm">{mission.description}</p>
                         </div>
                     ))}
                   </div>
@@ -400,7 +407,9 @@ function App() {
 
               {/* Mission Timeline Panel */}
               <motion.div 
-                className="mission-panel col-span-1 md:col-span-2"
+                className={`mission-panel col-span-1 md:col-span-2 ${
+                  missions.filter(m => m.status !== 'complete').length === 0 ? 'bg-space-darker/20' : ''
+                }`}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
               >
@@ -427,48 +436,75 @@ function App() {
                     {missions
                       .filter(m => m.status !== 'complete')
                       .map(mission => (
-                      <motion.div
-                        key={mission.id}
-                        className="mission-card"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                      >
-                        <div className={`mission-status ${getMissionStatusColor(getMissionStatus(mission))}`} />
-                        
-                        {/* Title and Description */}
-                        <div className="flex-1 mb-4">
-                          <h3 className="text-lg font-space mb-1 text-gray-200">{mission.title}</h3>
-                          {mission.isRecurring && (
-                            <div className="flex items-center gap-1 text-xs text-space-success mb-2">
-                              <ArrowPathIcon className="h-3 w-3" />
-                              <span>Recurring Mission</span>
-                            </div>
-                          )}
-                          <p className="text-gray-400 text-sm">{mission.description}</p>
-                        </div>
+                        <motion.div
+                          key={mission.id}
+                          className="mission-card"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <div className={`mission-status ${getMissionStatusColor(getMissionStatus(mission))}`} />
+                          
+                          {/* Title and Description */}
+                          <div className="flex-1 mb-4">
+                            <h3 className="text-lg font-space mb-1 text-gray-200">{mission.title}</h3>
+                            {mission.isRecurring && (
+                              <div className="flex items-center gap-1 text-xs text-space-success mb-2">
+                                <ArrowPathIcon className="h-3 w-3" />
+                                <span>Recurring Mission</span>
+                              </div>
+                            )}
+                            <p className="text-gray-400 text-sm">{mission.description}</p>
+                          </div>
 
-                        {/* Time Info */}
-                        <div className="flex items-center gap-2 text-sm mb-4">
-                          <ClockIcon className="h-4 w-4 text-space-primary" />
-                          <span>{mission.time} ({mission.duration}m)</span>
-                        </div>
+                          {/* Time Info */}
+                          <div className="flex items-center gap-2 text-sm mb-4">
+                            <ClockIcon className="h-4 w-4 text-space-primary" />
+                            <span>{mission.time} ({mission.duration}m)</span>
+                          </div>
 
-                        {/* Action Button */}
-                        <div className="flex justify-end">
-                          <button
-                            className="mission-button w-full sm:w-auto"
-                            onClick={() => handleMissionComplete(mission.id)}
-                          >
-                            <span className="flex items-center justify-center gap-2">
-                              <CheckCircleIcon className="h-4 w-4" />
-                              Complete
-                            </span>
-                          </button>
-                        </div>
-                      </motion.div>
-                    ))}
+                          {/* Action Button */}
+                          <div className="flex justify-end">
+                            <button
+                              className="mission-button w-full sm:w-auto"
+                              onClick={() => handleMissionComplete(mission.id)}
+                            >
+                              <span className="flex items-center justify-center gap-2">
+                                <CheckCircleIcon className="h-4 w-4" />
+                                Complete
+                              </span>
+                            </button>
+                          </div>
+                        </motion.div>
+                      ))}
                   </AnimatePresence>
+
+                  {/* Empty State */}
+                  {missions.filter(m => m.status !== 'complete').length === 0 && (
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.5, delay: 0.2 }}
+                      className="flex flex-col items-center justify-center py-20"
+                    >
+                      <motion.div
+                        animate={{
+                          y: [0, -10, 0],
+                          opacity: [1, 0.7, 1],
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                        className="mb-6"
+                      >
+                        <RocketLaunchIcon className="h-16 w-16 text-space-primary/50" />
+                      </motion.div>
+                      <p className="text-space-primary/80 text-lg font-medium">Ready for New Missions</p>
+                    </motion.div>
+                  )}
                 </div>
               </motion.div>
             </div>
@@ -484,132 +520,131 @@ function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-space-primary">New Mission</h2>
-                <button
-                  className="text-space-gray hover:text-space-light"
-                  onClick={() => setShowMissionForm(false)}
-                >
-                  <XCircleIcon className="h-6 w-6" />
-                </button>
-              </div>
-
-              <form onSubmit={handleAddMission} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-space mb-1">Mission Title</label>
-                  <input
-                    type="text"
-                    className="mission-input"
-                    value={newMission.title}
-                    onChange={(e) => setNewMission(prev => ({ ...prev, title: e.target.value }))}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-space mb-1">Mission Brief</label>
-                  <textarea
-                    className="mission-input"
-                    value={newMission.description}
-                    onChange={(e) => setNewMission(prev => ({ ...prev, description: e.target.value }))}
-                    rows="3"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-space mb-1">Start Time</label>
-                  <input
-                    type="time"
-                    className="mission-input"
-                    value={newMission.time}
-                    onChange={(e) => setNewMission(prev => ({ ...prev, time: e.target.value }))}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-space mb-1">Duration (minutes)</label>
-                  <input
-                    type="number"
-                    className="mission-input"
-                    value={newMission.duration}
-                    onChange={(e) => setNewMission(prev => ({ ...prev, duration: parseInt(e.target.value) }))}
-                    min="5"
-                    max="480"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-space mb-1">Mission Type</label>
-                  <select
-                    className="mission-input"
-                    value={newMission.type}
-                    onChange={(e) => setNewMission(prev => ({ ...prev, type: e.target.value }))}
+              <div className="bg-space-dark p-6 rounded-lg w-full max-w-md border border-space-gray/20">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold text-space-primary">New Mission</h2>
+                  <button
+                    onClick={() => setShowMissionForm(false)}
+                    className="text-space-gray hover:text-space-primary transition-colors"
+                    aria-label="Close"
                   >
-                    <option value="routine">Routine</option>
-                    <option value="critical">Critical</option>
-                    <option value="break">Break</option>
-                  </select>
+                    <XCircleIcon className="h-6 w-6" />
+                  </button>
                 </div>
 
-                {/* Recurring Mission Toggle */}
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-space mb-2">
+                <form onSubmit={handleAddMission} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-space mb-1">Mission Title</label>
+                    <input
+                      type="text"
+                      value={newMission.title}
+                      onChange={(e) => setNewMission({ ...newMission, title: e.target.value })}
+                      className="w-full bg-space-darker border border-space-gray/20 rounded px-3 py-2 text-space-light focus:outline-none focus:border-space-primary"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-space mb-1">Description</label>
+                    <textarea
+                      value={newMission.description}
+                      onChange={(e) => setNewMission({ ...newMission, description: e.target.value })}
+                      className="w-full bg-space-darker border border-space-gray/20 rounded px-3 py-2 text-space-light focus:outline-none focus:border-space-primary"
+                      rows="3"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-space mb-1">Start Time</label>
+                    <select
+                      value={newMission.time}
+                      onChange={(e) => setNewMission({ ...newMission, time: e.target.value })}
+                      className="w-full bg-space-darker border border-space-gray/20 rounded px-3 py-2 text-space-light focus:outline-none focus:border-space-primary"
+                      required
+                    >
+                      <option value="">Select a time</option>
+                      {Array.from({ length: 24 * 4 }).map((_, index) => {
+                        const hour = Math.floor(index / 4);
+                        const minute = (index % 4) * 15;
+                        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                        return (
+                          <option key={timeString} value={timeString}>
+                            {new Date(`2000-01-01T${timeString}`).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-space mb-1">Duration (minutes)</label>
+                    <select
+                      value={newMission.duration}
+                      onChange={(e) => setNewMission({ ...newMission, duration: parseInt(e.target.value) })}
+                      className="w-full bg-space-darker border border-space-gray/20 rounded px-3 py-2 text-space-light focus:outline-none focus:border-space-primary"
+                    >
+                      {[15, 30, 45, 60, 90, 120, 180, 240].map(duration => (
+                        <option key={duration} value={duration}>{duration} minutes</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-space mb-1">Mission Type</label>
+                    <select
+                      value={newMission.type}
+                      onChange={(e) => setNewMission({ ...newMission, type: e.target.value })}
+                      className="w-full bg-space-darker border border-space-gray/20 rounded px-3 py-2 text-space-light focus:outline-none focus:border-space-primary"
+                    >
+                      <option value="routine">Routine</option>
+                      <option value="critical">Critical</option>
+                      <option value="break">Break</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center space-x-2 pt-2">
                     <input
                       type="checkbox"
-                      className="form-checkbox rounded border-space-gray/20 bg-space-darker text-space-primary"
+                      id="isRecurring"
                       checked={newMission.isRecurring}
-                      onChange={(e) => setNewMission(prev => ({ 
-                        ...prev, 
-                        isRecurring: e.target.checked,
-                        recurringDays: e.target.checked ? prev.recurringDays : []
-                      }))}
+                      onChange={(e) => setNewMission({ ...newMission, isRecurring: e.target.checked })}
+                      className="form-checkbox bg-space-darker border-space-gray/20 text-space-primary rounded focus:ring-space-primary"
                     />
-                    <span>Recurring Orbital Pattern</span>
-                  </label>
-                </div>
-
-                {/* Recurring Days Selection */}
-                {newMission.isRecurring && (
-                  <div className="space-y-2">
-                    <label className="block text-sm font-space mb-1">Select Days</label>
-                    <div className="flex flex-wrap gap-2">
-                      {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => (
-                        <button
-                          key={day}
-                          type="button"
-                          className={`px-3 py-1 rounded-full text-xs ${
-                            newMission.recurringDays.includes(day)
-                              ? 'bg-space-primary text-space-darker'
-                              : 'bg-space-darker border border-space-gray/20'
-                          }`}
-                          onClick={() => handleRecurringDayToggle(day)}
-                        >
-                          {day.charAt(0).toUpperCase() + day.slice(1)}
-                        </button>
-                      ))}
-                    </div>
+                    <label htmlFor="isRecurring" className="text-sm font-space">Recurring Mission</label>
                   </div>
-                )}
 
-                <div className="flex gap-4 pt-4">
-                  <button
-                    type="button"
-                    className="mission-button w-1/2"
-                    onClick={() => setShowMissionForm(false)}
-                  >
-                    Abort
-                  </button>
-                  <button
-                    type="submit"
-                    className="mission-button w-1/2 border-space-success hover:border-space-success"
-                  >
-                    Launch Mission
-                  </button>
-                </div>
-              </form>
+                  {newMission.isRecurring && (
+                    <div className="space-y-2">
+                      <label className="block text-sm font-space">Repeat on</label>
+                      <div className="flex flex-wrap gap-2">
+                        {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => (
+                          <button
+                            key={day}
+                            type="button"
+                            onClick={() => handleRecurringDayToggle(day)}
+                            className={`px-3 py-1 rounded-full text-xs capitalize ${
+                              newMission.recurringDays.includes(day)
+                                ? 'bg-space-primary text-space-dark'
+                                : 'bg-space-darker text-space-gray border border-space-gray/20'
+                            }`}
+                          >
+                            {day.slice(0, 3)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end pt-4">
+                    <button type="submit" className="mission-button">
+                      <span className="flex items-center gap-2">
+                        <RocketLaunchIcon className="h-4 w-4" />
+                        Launch Mission
+                      </span>
+                    </button>
+                  </div>
+                </form>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
