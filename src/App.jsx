@@ -9,191 +9,35 @@ import PomodoroTimer from './components/adhd/PomodoroTimer';
 import StreakCounter from './components/adhd/StreakCounter';
 import MissionTemplates from './components/adhd/MissionTemplates';
 import Celebration from './components/adhd/Celebration';
+import { useMissions } from './hooks/useMissions';
+import { seedDatabase } from './firebase/seedData';
 
-// Sample mission data
-const initialMissions = [
-  {
-    id: uuidv4(),
-    title: 'Launch Day Initialization',
-    description: 'Wake up and begin day',
-    time: '05:00',
-    duration: 30,
-    status: 'pending',
-    type: 'critical',
-    isRecurring: true,
-    recurringDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-  },
-  {
-    id: uuidv4(),
-    title: 'Physical Systems Calibration',
-    description: 'Morning workout routine',
-    time: '05:30',
-    duration: 60,
-    status: 'pending',
-    type: 'routine',
-    isRecurring: true,
-    recurringDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-  },
-  {
-    id: uuidv4(),
-    title: 'Recovery Protocol',
-    description: 'Cool down and quick shower',
-    time: '06:30',
-    duration: 30,
-    status: 'pending',
-    type: 'routine',
-    isRecurring: true,
-    recurringDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-  },
-  {
-    id: uuidv4(),
-    title: 'Mission Planning & Sustenance',
-    description: 'Breakfast and daily planning',
-    time: '07:00',
-    duration: 30,
-    status: 'pending',
-    type: 'routine',
-    isRecurring: true,
-    recurringDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-  },
-  {
-    id: uuidv4(),
-    title: 'Family Operations',
-    description: 'School runs and morning responsibilities',
-    time: '07:30',
-    duration: 90,
-    status: 'pending',
-    type: 'critical',
-    isRecurring: true,
-    recurringDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-  },
-  {
-    id: uuidv4(),
-    title: 'Primary Code Deployment',
-    description: 'Focused coding work using Pomodoro Technique',
-    time: '09:00',
-    duration: 180,
-    status: 'pending',
-    type: 'routine',
-    isRecurring: true,
-    recurringDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-  },
-  {
-    id: uuidv4(),
-    title: 'Midday Refueling',
-    description: 'Healthy lunch break',
-    time: '12:00',
-    duration: 30,
-    status: 'pending',
-    type: 'break',
-    isRecurring: true,
-    recurringDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-  },
-  {
-    id: uuidv4(),
-    title: 'System Recalibration',
-    description: 'Brief physical activity or relaxation',
-    time: '12:30',
-    duration: 30,
-    status: 'pending',
-    type: 'break',
-    isRecurring: true,
-    recurringDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-  },
-  {
-    id: uuidv4(),
-    title: 'Knowledge Enhancement Protocol',
-    description: 'Career development and AI learning',
-    time: '13:00',
-    duration: 120,
-    status: 'pending',
-    type: 'routine',
-    isRecurring: true,
-    recurringDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-  },
-  {
-    id: uuidv4(),
-    title: 'Creative Systems Activation',
-    description: 'Personal projects and music writing',
-    time: '15:00',
-    duration: 60,
-    status: 'pending',
-    type: 'routine',
-    isRecurring: true,
-    recurringDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-  },
-  {
-    id: uuidv4(),
-    title: 'Personal Enhancement Sequence',
-    description: 'Personal development or additional coding',
-    time: '16:00',
-    duration: 60,
-    status: 'pending',
-    type: 'routine',
-    isRecurring: true,
-    recurringDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-  },
-  {
-    id: uuidv4(),
-    title: 'Family Integration Protocol',
-    description: 'Family time and dinner',
-    time: '17:00',
-    duration: 120,
-    status: 'pending',
-    type: 'critical',
-    isRecurring: true,
-    recurringDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-  },
-  {
-    id: uuidv4(),
-    title: 'Harmonic Resonance Session',
-    description: 'Music and band activities',
-    time: '19:00',
-    duration: 60,
-    status: 'pending',
-    type: 'routine',
-    isRecurring: true,
-    recurringDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-  },
-  {
-    id: uuidv4(),
-    title: 'System Cool Down',
-    description: 'Personal relaxation and wind-down',
-    time: '20:00',
-    duration: 60,
-    status: 'pending',
-    type: 'break',
-    isRecurring: true,
-    recurringDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-  },
-  {
-    id: uuidv4(),
-    title: 'Mission Debrief & Prep',
-    description: 'Evening planning and preparation',
-    time: '21:00',
-    duration: 60,
-    status: 'pending',
-    type: 'routine',
-    isRecurring: true,
-    recurringDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-  },
-  {
-    id: uuidv4(),
-    title: 'Sleep Protocol Initiation',
-    description: 'Bedtime sequence',
-    time: '22:00',
-    duration: 30,
-    status: 'pending',
-    type: 'critical',
-    isRecurring: true,
-    recurringDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+// Mission status helper functions
+const getMissionStatus = (mission) => {
+  if (mission.completed_at) return 'complete';
+  if (mission.started_at) return 'in-progress';
+  return 'pending';
+};
+
+const getMissionStatusClass = (status) => {
+  switch (status) {
+    case 'complete':
+      return 'bg-space-success';
+    case 'in-progress':
+      return 'bg-space-warning';
+    case 'pending':
+    default:
+      return 'bg-space-gray';
   }
-]
+};
 
 function App() {
-  const [missions, setMissions] = useState(initialMissions)
+  const { missions, loading, error, createMission, startMission, completeMission, revertMission } = useMissions();
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showMissionForm, setShowMissionForm] = useState(false)
+  const [showMissionLog, setShowMissionLog] = useState(false)
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationMessage, setCelebrationMessage] = useState('');
   const [newMission, setNewMission] = useState({
     title: '',
     description: '',
@@ -203,136 +47,54 @@ function App() {
     isRecurring: false,
     recurringDays: []
   })
-  const [showMissionLog, setShowMissionLog] = useState(false)
-  const [showCelebration, setShowCelebration] = useState(false);
-  const [celebrationMessage, setCelebrationMessage] = useState('');
-  const [activeMission, setActiveMission] = useState(null);
-  const [missionStartTime, setMissionStartTime] = useState(null);
 
   // Update current time
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date())
     }, 1000)
-
     return () => clearInterval(timer)
   }, [])
 
-  const handleMissionStart = (id) => {
-    // Check if any mission is already in progress
-    const hasActiveMission = missions.some(m => m.status === 'in-progress');
-    if (hasActiveMission) {
-      // Could add a toast notification here if you want to show an error
-      return;
-    }
-
-    setMissions(missions.map(mission => {
-      if (mission.id === id) {
-        const startTime = new Date().toISOString();
-        setActiveMission(id);
-        setMissionStartTime(startTime);
-        return { ...mission, status: 'in-progress', startTime };
-      }
-      return mission;
-    }));
-  };
-
-  const handleMissionComplete = (id) => {
-    const completedAt = new Date().toISOString();
-    
-    setMissions(missions.map(mission => {
-      if (mission.id === id) {
-        // Calculate actual duration in minutes
-        const startTime = new Date(mission.startTime);
-        const endTime = new Date(completedAt);
-        const actualDuration = Math.round((endTime - startTime) / (1000 * 60));
-
-        // Store the mission data for AI analysis
-        const missionData = {
-          ...mission,
-          status: 'complete',
-          completedAt,
-          actualDuration,
-          estimatedDuration: mission.duration
-        };
-
-        // Store in localStorage for analysis
-        const missionHistory = JSON.parse(localStorage.getItem('missionHistory') || '[]');
-        missionHistory.push(missionData);
-        localStorage.setItem('missionHistory', JSON.stringify(missionHistory));
-
-        setActiveMission(null);
-        setMissionStartTime(null);
-        
-        return missionData;
-      }
-      return mission;
-    }));
-
-    // Show celebration
-    setCelebrationMessage('Mission Accomplished! 🚀');
-    setShowCelebration(true);
-    setTimeout(() => setShowCelebration(false), 3000);
-  };
-
-  const handleMissionRevert = (id) => {
-    setMissions(missions.map(mission =>
-      mission.id === id
-        ? { ...mission, status: 'pending', completedAt: null }
-        : mission
-    ));
-  };
-
-  const handleAddMission = (e) => {
-    e.preventDefault()
-    const mission = {
-      id: uuidv4(),
-      ...newMission,
-      status: 'pending'
-    }
-    setMissions(prev => [...prev, mission])
-    setNewMission({
-      title: '',
-      description: '',
-      time: '',
-      duration: 30,
-      type: 'routine',
-      isRecurring: false,
-      recurringDays: []
-    })
-    setShowMissionForm(false)
-  }
-
-  const handleRecurringDayToggle = (day) => {
-    setNewMission(prev => ({
-      ...prev,
-      recurringDays: prev.recurringDays.includes(day)
-        ? prev.recurringDays.filter(d => d !== day)
-        : [...prev.recurringDays, day]
-    }))
-  }
-
-  const getMissionStatus = (mission) => {
-    if (mission.status === 'complete') return 'complete';
-    if (mission.status === 'in-progress') return 'in-progress';
-    return 'pending';
-  };
-
-  const getMissionStatusClass = (status) => {
-    switch (status) {
-      case 'complete': return 'status-complete';
-      case 'in-progress': return 'status-in-progress';
-      default: return 'status-pending';
+  const handleCreateMission = async (missionData) => {
+    try {
+      await createMission({
+        ...missionData,
+        status: 'pending'
+      });
+      setShowMissionForm(false);
+    } catch (err) {
+      console.error('Error creating mission:', err);
     }
   };
 
-  // Update mission statuses based on current time
-  useEffect(() => {
-    setMissions(missions.map(mission => ({
-      ...mission,
-      status: getMissionStatus(mission)
-    })));
-  }, [currentTime]);
+  const handleMissionStart = async (id) => {
+    try {
+      await startMission(id);
+    } catch (err) {
+      console.error('Error starting mission:', err);
+      // Could add error toast here
+    }
+  };
+
+  const handleMissionComplete = async (id) => {
+    try {
+      await completeMission(id);
+      setCelebrationMessage('Mission Accomplished');
+      setShowCelebration(true);
+      setTimeout(() => setShowCelebration(false), 3000);
+    } catch (err) {
+      console.error('Error completing mission:', err);
+    }
+  };
+
+  const handleMissionRevert = async (missionId) => {
+    try {
+      await revertMission(missionId);
+    } catch (error) {
+      console.error('Error reverting mission:', error);
+    }
+  };
 
   const handleTemplateSelect = (template) => {
     setNewMission({
@@ -345,9 +107,30 @@ function App() {
     setShowMissionForm(true);
   };
 
-  const getMissionHistory = () => {
-    return JSON.parse(localStorage.getItem('missionHistory') || '[]');
-  };
+  const handleRecurringDayToggle = (day) => {
+    setNewMission(prev => ({
+      ...prev,
+      recurringDays: prev.recurringDays.includes(day)
+        ? prev.recurringDays.filter(d => d !== day)
+        : [...prev.recurringDays, day]
+    }))
+  }
+
+  if (loading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-space-darker">
+        <div className="text-space-primary">Loading missions...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-space-darker">
+        <div className="text-red-500">Error loading missions: {error.message}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-space-darker">
@@ -376,6 +159,18 @@ function App() {
           >
             View Black Hole
           </Link>
+          <button
+            onClick={async () => {
+              try {
+                await seedDatabase();
+              } catch (err) {
+                console.error('Error seeding database:', err);
+              }
+            }}
+            className="mission-button ml-4"
+          >
+            Seed Database
+          </button>
         </div>
 
         {/* Background Grid */}
@@ -444,7 +239,7 @@ function App() {
                       <span className="text-space-success">
                         {missions.filter(m => 
                           m.status === 'complete' && 
-                          new Date(m.completedAt).toDateString() === new Date().toDateString()
+                          new Date(m.completed_at).toDateString() === new Date().toDateString()
                         ).length}
                       </span>
                     </div>
@@ -460,7 +255,7 @@ function App() {
                   <h2 className="text-xl font-bold mb-4 text-space-primary">Mission Logs</h2>
                   <div className="space-y-3">
                     {missions.filter(m => m.status === 'complete')
-                      .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+                      .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))
                       .slice(0, 5)
                       .map(mission => (
                         <div key={mission.id} className="p-3 bg-space-darker/50 rounded-lg border border-space-gray/20">
@@ -473,7 +268,7 @@ function App() {
                           )}
                           <div className="flex justify-between items-center text-xs">
                             <span className="text-space-gray">
-                              {new Date(mission.completedAt).toLocaleTimeString()}
+                              {new Date(mission.completed_at).toLocaleTimeString()}
                             </span>
                             <button
                               onClick={() => handleMissionRevert(mission.id)}
@@ -488,7 +283,7 @@ function App() {
                     ))}
                   </div>
                 </div>
-
+                
                 {/* Mobile Mission Log */}
                 {missions.filter(m => m.status === 'complete').length > 0 && (
                   <div className="order-2 md:hidden">
@@ -513,7 +308,7 @@ function App() {
                             className="space-y-3 mt-4 overflow-hidden"
                           >
                             {missions.filter(m => m.status === 'complete')
-                              .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+                              .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))
                               .slice(0, 5)
                               .map(mission => (
                                 <div key={mission.id} className="p-3 bg-space-darker/50 rounded-lg border border-space-gray/20">
@@ -526,7 +321,7 @@ function App() {
                                   )}
                                   <div className="flex justify-between items-center text-xs">
                                     <span className="text-space-gray">
-                                      {new Date(mission.completedAt).toLocaleTimeString()}
+                                      {new Date(mission.completed_at).toLocaleTimeString()}
                                     </span>
                                     <button
                                       onClick={() => handleMissionRevert(mission.id)}
@@ -580,16 +375,44 @@ function App() {
                       .map(mission => (
                         <motion.div
                           key={mission.id}
-                          className="mission-card"
+                          className={`mission-card relative ${
+                            mission.started_at && !mission.completed_at ? 'ring-1 ring-space-primary' : ''
+                          }`}
                           initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
+                          animate={{ 
+                            opacity: 1, 
+                            y: 0,
+                            boxShadow: mission.started_at && !mission.completed_at 
+                              ? ['0 0 0 0 rgba(0, 255, 159, 0)', '0 0 20px 2px rgba(0, 255, 159, 0.2)', '0 0 0 0 rgba(0, 255, 159, 0)']
+                              : 'none'
+                          }}
                           exit={{ opacity: 0, y: -20 }}
-                          transition={{ duration: 0.3 }}
+                          transition={{ 
+                            duration: 0.3,
+                            boxShadow: {
+                              duration: 2,
+                              repeat: Infinity,
+                              ease: "easeInOut"
+                            }
+                          }}
                         >
+                          {mission.started_at && !mission.completed_at && (
+                            <motion.div
+                              className="absolute inset-0 bg-space-primary/5 pointer-events-none"
+                              animate={{
+                                opacity: [0.1, 0.2, 0.1]
+                              }}
+                              transition={{
+                                duration: 2,
+                                repeat: Infinity,
+                                ease: "easeInOut"
+                              }}
+                            />
+                          )}
                           <div className={`mission-status ${getMissionStatusClass(getMissionStatus(mission))}`} />
                           
                           {/* Title and Description */}
-                          <div className="flex-1 mb-4">
+                          <div className="flex-1 mb-4 relative">
                             <h3 className="text-lg font-space mb-1 text-gray-200">{mission.title}</h3>
                             {mission.isRecurring && (
                               <div className="flex items-center gap-1 text-xs text-space-success mb-2">
@@ -601,13 +424,13 @@ function App() {
                           </div>
 
                           {/* Time Info */}
-                          <div className="flex items-center gap-2 text-sm mb-4">
+                          <div className="flex items-center gap-2 text-sm mb-4 relative">
                             <ClockIcon className="h-4 w-4 text-space-primary" />
                             <span>{mission.time} ({mission.duration}m)</span>
                           </div>
 
                           {/* Action Button */}
-                          <div className="flex justify-end">
+                          <div className="flex justify-end relative">
                             <button
                               onClick={() => mission.status === 'pending' 
                                 ? handleMissionStart(mission.id)
@@ -696,7 +519,7 @@ function App() {
                   </button>
                 </div>
 
-                <form onSubmit={handleAddMission} className="space-y-4">
+                <form onSubmit={(e) => handleCreateMission(newMission)} className="space-y-4">
                   <div>
                     <label className="block text-sm font-space mb-1">Mission Title</label>
                     <input
@@ -813,10 +636,24 @@ function App() {
           )}
         </AnimatePresence>
 
-        <Celebration 
-          show={showCelebration}
-          message={celebrationMessage}
-        />
+        <AnimatePresence>
+          {showCelebration && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
+            >
+              <div className="bg-space-darker/90 text-space-primary p-6 rounded-lg shadow-lg border border-space-primary/20">
+                <div className="flex items-center gap-3 text-2xl font-space">
+                  <RocketLaunchIcon className="h-8 w-8 text-space-primary animate-bounce" />
+                  <span>{celebrationMessage}</span>
+                  <RocketLaunchIcon className="h-8 w-8 text-space-primary animate-bounce" style={{ transform: 'scaleX(-1)' }} />
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

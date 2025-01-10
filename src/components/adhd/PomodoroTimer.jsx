@@ -100,8 +100,8 @@ export default function PomodoroTimer({ activeMission }) {
     : 1 - (timeLeft / (isBreak ? DEFAULT_BREAK_TIME : DEFAULT_WORK_TIME));
 
   return (
-    <div className="flex flex-col items-center justify-center w-full max-w-xs mx-auto">
-      <div className="relative w-32 h-32 mb-4">
+    <div className="flex flex-col items-center justify-center w-full max-w-xs mx-auto p-4">
+      <div className="relative w-32 h-32 mb-6">
         <svg 
           className="w-full h-full transform -rotate-90"
           viewBox="0 0 100 100"
@@ -179,39 +179,39 @@ export default function PomodoroTimer({ activeMission }) {
         </div>
       </div>
       
-      <div className="flex justify-center space-x-2">
+      <div className="flex flex-col w-full space-y-2">
         <button
           onClick={handlePlayPause}
-          className={`mission-button px-4 flex items-center gap-2 ${
+          className={`mission-button h-10 flex items-center justify-center gap-1.5 ${
             !isRunning ? 'bg-space-primary/20 hover:bg-space-primary/40' : ''
           }`}
         >
           {isRunning ? (
             <>
               <PauseIcon className="h-4 w-4" />
-              Pause
+              <span>Pause</span>
             </>
           ) : (
             <>
               <PlayIcon className="h-4 w-4" />
-              {timeLeft === 0 ? 'Start' : 'Resume'}
+              <span>{timeLeft === 0 ? 'Start' : 'Resume'}</span>
             </>
           )}
         </button>
         <button
           onClick={handleReset}
-          className="mission-button px-4 flex items-center gap-2 bg-space-darker/40 hover:bg-space-darker/60"
+          className="mission-button h-10 flex items-center justify-center gap-1.5 bg-space-darker/40 hover:bg-space-darker/60"
         >
           <StopIcon className="h-4 w-4" />
-          Reset
+          <span>Reset</span>
         </button>
         {!activeMission && (
           <button
             onClick={toggleMode}
-            className="mission-button px-4 flex items-center gap-2 bg-space-darker/40 hover:bg-space-darker/60"
+            className="mission-button h-10 flex items-center justify-center gap-1.5 bg-space-darker/40 hover:bg-space-darker/60"
           >
             <ArrowPathIcon className="h-4 w-4" />
-            {isBreak ? 'Work' : 'Break'}
+            <span>{isBreak ? 'Work' : 'Break'}</span>
           </button>
         )}
       </div>

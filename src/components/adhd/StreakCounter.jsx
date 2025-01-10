@@ -17,16 +17,20 @@ export default function StreakCounter({ missions }) {
   }, [missions]);
 
   const calculateCurrentStreak = () => {
-    if (!missions.length) return;
+    if (!missions?.length) {
+      setCurrentStreak(0);
+      return;
+    }
 
     // Get completed missions sorted by date
     const completedMissions = missions
-      .filter(m => m.status === 'complete')
+      .filter(m => m.completed_at)
       .map(m => ({
         ...m,
-        completedDate: new Date(m.completedAt).toISOString().split('T')[0]
+        // Format the date as YYYY-MM-DD
+        completedDate: m.completed_at.toISOString().split('T')[0]
       }))
-      .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+      .sort((a, b) => b.completed_at - a.completed_at);
 
     if (completedMissions.length === 0) {
       setCurrentStreak(0);
@@ -39,6 +43,8 @@ export default function StreakCounter({ missions }) {
     // Calculate last 7 days of activity
     const last7Days = [];
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     for (let i = 6; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
@@ -50,29 +56,28 @@ export default function StreakCounter({ missions }) {
     }
     setRecentDays(last7Days);
     
-    let streak = 1; // Start with 1 for today if we have a completion
-    let currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
-
-    // Check if most recent completion was today
-    const mostRecentCompletion = new Date(uniqueCompletionDates[0]);
-    if (mostRecentCompletion.toISOString().split('T')[0] !== currentDate.toISOString().split('T')[0]) {
-      setCurrentStreak(0);
-      return;
-    }
-
-    // Check consecutive days
-    for (let i = 1; i < uniqueCompletionDates.length; i++) {
-      const currentDay = new Date(uniqueCompletionDates[i - 1]);
-      const previousDay = new Date(uniqueCompletionDates[i]);
+    // Calculate streak
+    let streak = 0;
+    const todayStr = today.toISOString().split('T')[0];
+    
+    // Check if there's a completion today
+    if (uniqueCompletionDates[0] === todayStr) {
+      streak = 1;
       
-      const diffTime = currentDay.getTime() - previousDay.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      // Check previous days
+      let checkDate = new Date(today);
+      let index = 1;
       
-      if (diffDays === 1) {
-        streak++;
-      } else {
-        break;
+      while (index < uniqueCompletionDates.length) {
+        checkDate.setDate(checkDate.getDate() - 1);
+        const checkDateStr = checkDate.toISOString().split('T')[0];
+        
+        if (uniqueCompletionDates[index] === checkDateStr) {
+          streak++;
+          index++;
+        } else {
+          break;
+        }
       }
     }
 
@@ -99,12 +104,12 @@ export default function StreakCounter({ missions }) {
             Current Streak
           </div>
         </motion.div>
-
+        
         <motion.div 
           className="text-center"
           whileHover={{ scale: 1.1 }}
         >
-          <div className="text-xl font-space font-bold text-space-success">
+          <div className="text-xl font-space font-bold text-space-primary">
             {bestStreak}
           </div>
           <div className="text-sm text-space-gray">
@@ -113,36 +118,19 @@ export default function StreakCounter({ missions }) {
         </motion.div>
       </div>
 
-      {/* Activity Graph */}
-      <div className="space-y-2">
-        <div className="text-sm text-space-gray mb-2">Last 7 Days</div>
-        <div className="flex justify-between gap-1.5">
-          {recentDays.map((day, index) => (
-            <motion.div
-              key={day.date}
-              className="flex-1"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <motion.div
-                className={`h-8 rounded-md ${
-                  day.completed 
-                    ? 'bg-space-primary' 
-                    : 'bg-space-darker/40 border border-space-gray/20'
-                }`}
-                whileHover={{ scale: 1.1 }}
-                animate={day.completed ? {
-                  boxShadow: ['0 0 0 0 rgba(0, 255, 255, 0)', '0 0 20px 2px rgba(0, 255, 255, 0.2)', '0 0 0 0 rgba(0, 255, 255, 0)']
-                } : {}}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
-              <div className="text-center text-xs text-space-gray mt-1">
-                {new Date(day.date).toLocaleDateString(undefined, { weekday: 'short' })}
-              </div>
-            </motion.div>
-          ))}
-        </div>
+      <div className="flex justify-between">
+        {recentDays.map((day, index) => (
+          <motion.div
+            key={day.date}
+            className={`w-8 h-8 rounded-lg ${
+              day.completed ? 'bg-space-success' : 'bg-space-gray/20'
+            }`}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: index * 0.1 }}
+            whileHover={{ scale: 1.1 }}
+          />
+        ))}
       </div>
     </div>
   );
