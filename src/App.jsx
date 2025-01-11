@@ -11,6 +11,8 @@ import MissionTemplates from './components/adhd/MissionTemplates';
 import Celebration from './components/adhd/Celebration';
 import { useMissions } from './hooks/useMissions';
 import { seedDatabase } from './firebase/seedData';
+import MissionForm from './components/mission/MissionForm';
+import MissionCard from './components/mission/MissionCard';
 
 // Mission status helper functions
 const getMissionStatus = (mission) => {
@@ -32,7 +34,7 @@ const getMissionStatusClass = (status) => {
 };
 
 function App() {
-  const { missions, loading, error, createMission, startMission, completeMission, revertMission } = useMissions();
+  const { missions, loading, error, createMission, startMission, completeMission, revertMission, updateSubtask } = useMissions();
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showMissionForm, setShowMissionForm] = useState(false)
   const [showMissionLog, setShowMissionLog] = useState(false)
@@ -57,34 +59,46 @@ function App() {
   }, [])
 
   const handleCreateMission = async (missionData) => {
+    console.log('🌟 Creating new mission:', missionData);
     try {
-      await createMission({
-        ...missionData,
-        status: 'pending'
-      });
+      await createMission(missionData);
       setShowMissionForm(false);
+      console.log('✅ Mission created successfully');
     } catch (err) {
-      console.error('Error creating mission:', err);
+      console.error('❌ Error creating mission:', err);
     }
   };
 
   const handleMissionStart = async (id) => {
+    console.log('🚀 Starting mission:', id);
     try {
       await startMission(id);
+      console.log('✅ Mission started successfully');
     } catch (err) {
-      console.error('Error starting mission:', err);
-      // Could add error toast here
+      console.error('❌ Error starting mission:', err);
     }
   };
 
   const handleMissionComplete = async (id) => {
+    console.log('🎯 Completing mission:', id);
     try {
       await completeMission(id);
       setCelebrationMessage('Mission Accomplished');
       setShowCelebration(true);
       setTimeout(() => setShowCelebration(false), 3000);
+      console.log('✅ Mission completed successfully');
     } catch (err) {
-      console.error('Error completing mission:', err);
+      console.error('❌ Error completing mission:', err);
+    }
+  };
+
+  const handleSubtaskComplete = async (missionId, subtaskId) => {
+    console.log('📋 Completing subtask:', subtaskId, 'for mission:', missionId);
+    try {
+      await updateSubtask(missionId, subtaskId, 'completed');
+      console.log('✅ Subtask completed successfully');
+    } catch (err) {
+      console.error('❌ Error completing subtask:', err);
     }
   };
 
@@ -96,15 +110,28 @@ function App() {
     }
   };
 
-  const handleTemplateSelect = (template) => {
-    setNewMission({
-      ...newMission,
+  const handleTemplateSelect = async (template) => {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    
+    const missionData = {
       title: template.title,
       description: template.description,
       duration: template.duration,
-      category: template.category
-    });
-    setShowMissionForm(true);
+      time: `${hours}:${minutes}`,
+      category: template.category,
+      isRecurring: false,
+      subtasks: null,
+      aiSuggestions: null
+    };
+
+    try {
+      await createMission(missionData);
+      console.log('✅ Quick mission created:', template.title);
+    } catch (err) {
+      console.error('❌ Error creating quick mission:', err);
+    }
   };
 
   const handleRecurringDayToggle = (day) => {
@@ -373,97 +400,15 @@ function App() {
                     {missions
                       .filter(m => m.status !== 'complete')
                       .map(mission => (
-                        <motion.div
+                        <MissionCard
                           key={mission.id}
-                          className={`mission-card relative ${
-                            mission.started_at && !mission.completed_at ? 'ring-1 ring-space-primary' : ''
-                          }`}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ 
-                            opacity: 1, 
-                            y: 0,
-                            boxShadow: mission.started_at && !mission.completed_at 
-                              ? ['0 0 0 0 rgba(0, 255, 159, 0)', '0 0 20px 2px rgba(0, 255, 159, 0.2)', '0 0 0 0 rgba(0, 255, 159, 0)']
-                              : 'none'
-                          }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{ 
-                            duration: 0.3,
-                            boxShadow: {
-                              duration: 2,
-                              repeat: Infinity,
-                              ease: "easeInOut"
-                            }
-                          }}
-                        >
-                          {mission.started_at && !mission.completed_at && (
-                            <motion.div
-                              className="absolute inset-0 bg-space-primary/5 pointer-events-none"
-                              animate={{
-                                opacity: [0.1, 0.2, 0.1]
-                              }}
-                              transition={{
-                                duration: 2,
-                                repeat: Infinity,
-                                ease: "easeInOut"
-                              }}
-                            />
-                          )}
-                          <div className={`mission-status ${getMissionStatusClass(getMissionStatus(mission))}`} />
-                          
-                          {/* Title and Description */}
-                          <div className="flex-1 mb-4 relative">
-                            <h3 className="text-lg font-space mb-1 text-gray-200">{mission.title}</h3>
-                            {mission.isRecurring && (
-                              <div className="flex items-center gap-1 text-xs text-space-success mb-2">
-                                <ArrowPathIcon className="h-3 w-3" />
-                                <span>Recurring Mission</span>
-                              </div>
-                            )}
-                            <p className="text-gray-400 text-sm">{mission.description}</p>
-                          </div>
-
-                          {/* Time Info */}
-                          <div className="flex items-center gap-2 text-sm mb-4 relative">
-                            <ClockIcon className="h-4 w-4 text-space-primary" />
-                            <span>{mission.time} ({mission.duration}m)</span>
-                          </div>
-
-                          {/* Action Button */}
-                          <div className="flex justify-end relative">
-                            <button
-                              onClick={() => mission.status === 'pending' 
-                                ? handleMissionStart(mission.id)
-                                : handleMissionComplete(mission.id)
-                              }
-                              className={`mission-button w-full sm:w-auto ${
-                                mission.status === 'in-progress' 
-                                  ? 'bg-red-500/20 hover:bg-red-500/40 text-red-400' 
-                                  : missions.some(m => m.status === 'in-progress')
-                                    ? 'opacity-50 cursor-not-allowed'
-                                    : ''
-                              }`}
-                              disabled={mission.status === 'pending' && missions.some(m => m.status === 'in-progress')}
-                            >
-                              <span className="flex items-center justify-center gap-2">
-                                {mission.status === 'pending' ? (
-                                  <>
-                                    <PlayIcon className="h-4 w-4" />
-                                    {missions.some(m => m.status === 'in-progress') 
-                                      ? 'Mission in Progress'
-                                      : 'Start'
-                                    }
-                                  </>
-                                ) : mission.status === 'in-progress' ? (
-                                  <>
-                                    <CheckCircleIcon className="h-4 w-4" />
-                                    Complete
-                                  </>
-                                ) : null}
-                              </span>
-                            </button>
-                          </div>
-                        </motion.div>
+                          mission={mission}
+                          onStart={handleMissionStart}
+                          onComplete={handleMissionComplete}
+                          onSubtaskComplete={handleSubtaskComplete}
+                          isActive={mission.started_at && !mission.completed_at}
+                          disabled={!mission.started_at && missions.some(m => m.started_at && !m.completed_at)}
+                        />
                       ))}
                   </AnimatePresence>
 
@@ -502,136 +447,15 @@ function App() {
         <AnimatePresence>
           {showMissionForm && (
             <motion.div
-              className="fixed inset-0 bg-space-darker/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
             >
-              <div className="bg-space-dark p-6 rounded-lg w-full max-w-md border border-space-gray/20">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold text-space-primary">New Mission</h2>
-                  <button
-                    onClick={() => setShowMissionForm(false)}
-                    className="text-space-gray hover:text-space-primary transition-colors"
-                    aria-label="Close"
-                  >
-                    <XCircleIcon className="h-6 w-6" />
-                  </button>
-                </div>
-
-                <form onSubmit={(e) => handleCreateMission(newMission)} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-space mb-1">Mission Title</label>
-                    <input
-                      type="text"
-                      value={newMission.title}
-                      onChange={(e) => setNewMission({ ...newMission, title: e.target.value })}
-                      className="w-full bg-space-darker border border-space-gray/20 rounded px-3 py-2 text-space-light focus:outline-none focus:border-space-primary"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-space mb-1">Description</label>
-                    <textarea
-                      value={newMission.description}
-                      onChange={(e) => setNewMission({ ...newMission, description: e.target.value })}
-                      className="w-full bg-space-darker border border-space-gray/20 rounded px-3 py-2 text-space-light focus:outline-none focus:border-space-primary"
-                      rows="3"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-space mb-1">Start Time</label>
-                    <select
-                      value={newMission.time}
-                      onChange={(e) => setNewMission({ ...newMission, time: e.target.value })}
-                      className="w-full bg-space-darker border border-space-gray/20 rounded px-3 py-2 text-space-light focus:outline-none focus:border-space-primary"
-                      required
-                    >
-                      <option value="">Select a time</option>
-                      {Array.from({ length: 24 * 4 }).map((_, index) => {
-                        const hour = Math.floor(index / 4);
-                        const minute = (index % 4) * 15;
-                        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                        return (
-                          <option key={timeString} value={timeString}>
-                            {new Date(`2000-01-01T${timeString}`).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-space mb-1">Duration (minutes)</label>
-                    <select
-                      value={newMission.duration}
-                      onChange={(e) => setNewMission({ ...newMission, duration: parseInt(e.target.value) })}
-                      className="w-full bg-space-darker border border-space-gray/20 rounded px-3 py-2 text-space-light focus:outline-none focus:border-space-primary"
-                    >
-                      {[15, 30, 45, 60, 90, 120, 180, 240].map(duration => (
-                        <option key={duration} value={duration}>{duration} minutes</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-space mb-1">Mission Type</label>
-                    <select
-                      value={newMission.type}
-                      onChange={(e) => setNewMission({ ...newMission, type: e.target.value })}
-                      className="w-full bg-space-darker border border-space-gray/20 rounded px-3 py-2 text-space-light focus:outline-none focus:border-space-primary"
-                    >
-                      <option value="routine">Routine</option>
-                      <option value="critical">Critical</option>
-                      <option value="break">Break</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center space-x-2 pt-2">
-                    <input
-                      type="checkbox"
-                      id="isRecurring"
-                      checked={newMission.isRecurring}
-                      onChange={(e) => setNewMission({ ...newMission, isRecurring: e.target.checked })}
-                      className="form-checkbox bg-space-darker border-space-gray/20 text-space-primary rounded focus:ring-space-primary"
-                    />
-                    <label htmlFor="isRecurring" className="text-sm font-space">Recurring Mission</label>
-                  </div>
-
-                  {newMission.isRecurring && (
-                    <div className="space-y-2">
-                      <label className="block text-sm font-space">Repeat on</label>
-                      <div className="flex flex-wrap gap-2">
-                        {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => (
-                          <button
-                            key={day}
-                            type="button"
-                            onClick={() => handleRecurringDayToggle(day)}
-                            className={`px-3 py-1 rounded-full text-xs capitalize ${
-                              newMission.recurringDays.includes(day)
-                                ? 'bg-space-primary text-space-dark'
-                                : 'bg-space-darker text-space-gray border border-space-gray/20'
-                            }`}
-                          >
-                            {day.slice(0, 3)}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex justify-end pt-4">
-                    <button type="submit" className="mission-button">
-                      <span className="flex items-center gap-2">
-                        <RocketLaunchIcon className="h-4 w-4" />
-                        Launch Mission
-                      </span>
-                    </button>
-                  </div>
-                </form>
-              </div>
+              <MissionForm
+                onSubmit={handleCreateMission}
+                onClose={() => setShowMissionForm(false)}
+              />
             </motion.div>
           )}
         </AnimatePresence>
