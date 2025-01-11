@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { SparklesIcon } from '@heroicons/react/24/outline';
+import { TrashIcon } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 import { analyzeTask, formatAIResponse } from '../../services/aiService';
 
@@ -95,6 +96,14 @@ const AITaskBreakdown = ({ mission, onUpdateMission }) => {
     });
   };
 
+  const handleClearSubtasks = () => {
+    onUpdateMission({
+      ...mission,
+      subtasks: null,
+      aiSuggestions: null
+    });
+  };
+
   return (
     <div className="space-y-4">
       {!mission.subtasks ? (
@@ -123,6 +132,17 @@ const AITaskBreakdown = ({ mission, onUpdateMission }) => {
         </button>
       ) : (
         <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium text-space-primary">AI Task Analysis</h3>
+            <button
+              onClick={handleClearSubtasks}
+              className="text-gray-400 hover:text-red-400 text-sm flex items-center"
+            >
+              <TrashIcon className="w-4 h-4 mr-1" />
+              Remove Analysis
+            </button>
+          </div>
+
           <div className="bg-space-darker/50 p-4 rounded">
             <h3 className="text-lg font-medium text-space-primary mb-2">AI Suggestions</h3>
             <div className="space-y-2 text-sm text-gray-300">
