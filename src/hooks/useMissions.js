@@ -70,12 +70,34 @@ export function useMissions() {
       const docRef = await addDoc(collection(db, MISSIONS_COLLECTION), {
         ...missionData,
         created_at: serverTimestamp(),
-        status: 'pending'
+        status: 'pending',
+        subtasks: missionData.subtasks || null,
+        aiSuggestions: missionData.aiSuggestions || null
       });
-      return { id: docRef.id, ...missionData };
+      console.log('Mission created with ID:', docRef.id);
+      return docRef;
     } catch (err) {
       console.error('Error creating mission:', err);
-      setError(err);
+      throw err;
+    }
+  };
+
+  const updateSubtask = async (missionId, subtaskId, status) => {
+    try {
+      const missionRef = doc(db, MISSIONS_COLLECTION, missionId);
+      const mission = missions.find(m => m.id === missionId);
+      
+      if (!mission) throw new Error('Mission not found');
+
+      const updatedSubtasks = mission.subtasks.map(subtask =>
+        subtask.id === subtaskId ? { ...subtask, status } : subtask
+      );
+
+      await updateDoc(missionRef, {
+        subtasks: updatedSubtasks
+      });
+    } catch (err) {
+      console.error('Error updating subtask:', err);
       throw err;
     }
   };
@@ -134,6 +156,7 @@ export function useMissions() {
     loading,
     error,
     createMission,
+    updateSubtask,
     startMission,
     completeMission,
     revertMission
