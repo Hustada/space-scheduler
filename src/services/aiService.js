@@ -1,6 +1,33 @@
-// AI Service for task breakdown and analysis
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1';
-const CLAUDE_PROXY_URL = 'http://localhost:3001/api/claude';
+// AI Service API Configuration
+console.log('Environment variables:', {
+  CLAUDE_KEY: import.meta.env.VITE_ANTHROPIC_API_KEY,
+  GEMINI_KEY: import.meta.env.VITE_GEMINI_API_KEY,
+  CLAUDE_URL: import.meta.env.VITE_CLAUDE_PROXY_URL
+});
+
+const API_CONFIG = {
+  openai: {
+    url: import.meta.env.VITE_OPENAI_API_URL || 'https://api.openai.com/v1',
+    key: import.meta.env.VITE_OPENAI_API_KEY,
+    model: 'gpt-4-turbo-preview'
+  },
+  gemini: {
+    url: import.meta.env.VITE_GEMINI_API_URL || 'https://generativelanguage.googleapis.com/v1/models',
+    key: import.meta.env.VITE_GEMINI_API_KEY,
+    model: 'gemini-pro'
+  },
+  claude: {
+    url: import.meta.env.VITE_CLAUDE_PROXY_URL || 'http://localhost:3001/api/claude',
+    key: import.meta.env.VITE_ANTHROPIC_API_KEY,
+    model: 'claude-2.1'
+  }
+};
+
+// Log the actual config we're using
+console.log('API Config:', {
+  gemini: { url: API_CONFIG.gemini.url, key: API_CONFIG.gemini.key?.substring(0, 10) },
+  claude: { url: API_CONFIG.claude.url, key: API_CONFIG.claude.key?.substring(0, 10) }
+});
 
 const generateSystemPrompt = () => {
   console.log(' [AI Service] Generating system prompt');
@@ -38,121 +65,207 @@ const generateUserPrompt = (taskDescription) => {
   }`;
 };
 
-export const analyzeTask = async (taskDescription, apiKey) => {
-  console.log(' [AI Service] Starting task analysis');
-  
-  // Try Deepseek first
+// Helper function to extract JSON from text
+const extractJSON = (text) => {
   try {
-    console.log(' [AI Service] Attempting Deepseek API...');
-    const response = await fetch(`${DEEPSEEK_API_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          {
-            role: 'system',
-            content: generateSystemPrompt()
-          },
-          {
-            role: 'user',
-            content: generateUserPrompt(taskDescription)
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 1000
-      })
-    });
-
-    if (!response.ok) {
-      console.warn(' [AI Service] Deepseek API failed, status:', response.status);
-      throw new Error('Deepseek API request failed');
-    }
-
-    console.log(' [AI Service] Deepseek API response received');
-    const data = await response.json();
-    console.log(' [AI Service] Parsing Deepseek response...');
-    const parsedResponse = JSON.parse(data.choices[0].message.content);
-    console.log(' [AI Service] Successfully parsed Deepseek response:', parsedResponse);
-    return parsedResponse;
-  } catch (deepseekError) {
-    console.error(' [AI Service] Deepseek error:', deepseekError);
-    
-    // Try Claude as fallback
+    // First try direct parse
+    return JSON.parse(text);
+  } catch (e) {
     try {
-      console.log(' [AI Service] Falling back to Claude API via proxy...');
-      const claudeResponse = await fetch(CLAUDE_PROXY_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'claude-2.1',
-          messages: [{
-            role: 'user',
-            content: `${generateSystemPrompt()}\n\n${generateUserPrompt(taskDescription)}`
-          }],
-          max_tokens: 1000
-        })
-      });
-
-      if (!claudeResponse.ok) {
-        console.error(' [AI Service] Claude API failed, status:', claudeResponse.status);
-        throw new Error('Claude API request failed');
+      // Try to find JSON object in the text
+      const match = text.match(/\{[\s\S]*\}/);
+      if (match) {
+        const jsonStr = match[0].trim();
+        // Remove any markdown code block markers
+        const cleanJson = jsonStr.replace(/```(json)?\n?|\n?```/g, '').trim();
+        return JSON.parse(cleanJson);
       }
 
-      console.log('✅ [AI Service] Claude API response received');
-      const claudeData = await claudeResponse.json();
-      console.log('📊 [AI Service] Raw Claude response:', JSON.stringify(claudeData, null, 2));
-      
-      // Extract the content from Claude's response
-      const text = claudeData.content?.[0]?.text;
-      if (!text) {
-        console.error('❌ [AI Service] No text content in Claude response');
-        throw new Error('Invalid response format from Claude API');
+      // Look for content between triple backticks
+      const codeBlockMatch = text.match(/```(?:json)?([\s\S]*?)```/);
+      if (codeBlockMatch) {
+        return JSON.parse(codeBlockMatch[1].trim());
       }
+    } catch (e2) {
+      console.error('Failed to extract JSON:', e2);
+      console.log('Raw text:', text);
+    }
+    throw new Error('Could not extract valid JSON from response');
+  }
+};
 
-      console.log('📝 [AI Service] Extracted text content:', text);
+// Helper function to call an AI provider
+const callAIProvider = async (provider, taskDescription) => {
+  const config = API_CONFIG[provider];
+  if (!config.key) return null;
 
-      // Extract JSON from markdown code block
-      const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
-      if (!jsonMatch) {
-        console.error('❌ [AI Service] No JSON found in Claude response');
-        throw new Error('Invalid response format from Claude API');
-      }
-
-      try {
-        const parsedResponse = JSON.parse(jsonMatch[1]);
-        console.log('✨ [AI Service] Successfully parsed JSON:', parsedResponse);
+  console.log(` [AI Service] Attempting ${provider} API...`);
+  
+  try {
+    let response;
+    
+    switch (provider) {
+      case 'openai':
+        response = await fetch(`${config.url}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${config.key}`
+          },
+          body: JSON.stringify({
+            model: config.model,
+            messages: [
+              { role: 'system', content: generateSystemPrompt() },
+              { role: 'user', content: generateUserPrompt(taskDescription) }
+            ],
+            temperature: 0.7,
+            max_tokens: 1000
+          })
+        });
+        break;
         
-        // Ensure the response has the required structure
-        if (!parsedResponse.subtasks || !parsedResponse.suggestions) {
-          throw new Error('Response missing required fields');
+      case 'gemini':
+        response = await fetch(`${config.url}/${config.model}:generateContent`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': config.key
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: `${generateSystemPrompt()}\n\n${generateUserPrompt(taskDescription)}` }]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 1000
+            }
+          })
+        });
+        break;
+        
+      case 'claude':
+        if (!config.key) {
+          console.error('No Claude API key found');
+          throw new Error('Claude API key is required');
+        }
+        console.log('Using Claude API key:', config.key.substring(0, 10) + '...');
+        
+        response = await fetch(config.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            apiKey: config.key,
+            messages: [{
+              role: 'user',
+              content: `${generateSystemPrompt()}\n\n${generateUserPrompt(taskDescription)}`
+            }]
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Claude error response:', errorText);
+          throw new Error(`Claude API error: ${response.statusText} - ${errorText}`);
         }
 
-        // Generate new IDs for subtasks
-        const formattedResponse = {
-          ...parsedResponse,
-          subtasks: parsedResponse.subtasks.map(subtask => ({
-            ...subtask,
-            id: generateSubtaskId()
-          }))
-        };
+        const claudeData = await response.json();
+        console.log('Claude raw response:', claudeData);
+        
+        // Extract JSON from Claude's response - check both response and content fields
+        let claudeText = claudeData.response || claudeData.content;
+        if (!claudeText) {
+          console.error('Claude response structure:', claudeData);
+          throw new Error('No response field in Claude data');
+        }
+        
+        const claudeResult = extractJSON(claudeText);
+        console.log('Extracted JSON:', claudeResult);
+        return { ...claudeResult, aiProvider: 'Anthropic Claude' };
+      default:
+        throw new Error(`Unknown provider: ${provider}`);
+    }
 
-        console.log('🎯 [AI Service] Final formatted response:', formattedResponse);
-        return formattedResponse;
-      } catch (parseError) {
-        console.error('❌ [AI Service] Failed to parse JSON:', parseError);
-        throw new Error('Failed to parse AI response');
-      }
-    } catch (claudeError) {
-      console.error(' [AI Service] Claude fallback failed:', claudeError);
-      throw new Error('All AI services failed');
+    if (!response.ok) {
+      throw new Error(`${provider} API failed with status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Handle different response formats
+    switch (provider) {
+      case 'openai':
+        const openaiResult = extractJSON(data.choices[0].message.content);
+        return { ...openaiResult, aiProvider: 'OpenAI GPT-4' };
+      case 'gemini':
+        const geminiText = data.candidates[0].content.parts[0].text;
+        // Remove markdown code block markers if present
+        const jsonStr = geminiText.replace(/```(json)?\n?|\n?```/g, '').trim();
+        const geminiResult = extractJSON(jsonStr);
+        return { ...geminiResult, aiProvider: 'Google Gemini Pro' };
+      default:
+        throw new Error(`Unknown provider: ${provider}`);
+    }
+  } catch (error) {
+    console.error(` [AI Service] ${provider} error:`, error);
+    return null;
+  }
+};
+
+export const analyzeTask = async (taskDescription) => {
+  console.log(' [AI Service] Starting task analysis');
+
+  // Try providers in order of preference
+  const providers = ['claude', 'gemini', 'openai'];
+  
+  for (const provider of providers) {
+    const result = await callAIProvider(provider, taskDescription);
+    if (result) {
+      console.log(` [AI Service] Successfully analyzed task with ${provider}`);
+      return result;
     }
   }
+
+  // If all providers fail, return a basic task breakdown
+  console.log(' [AI Service] All providers failed, using fallback');
+  return {
+    title: taskDescription,
+    subtasks: [
+      {
+        id: generateSubtaskId(),
+        title: "Plan the mission",
+        description: "Break down the mission into smaller steps",
+        estimatedDuration: 15,
+        difficulty: "easy",
+        status: "pending"
+      },
+      {
+        id: generateSubtaskId(),
+        title: "Execute the mission",
+        description: "Complete the main task",
+        estimatedDuration: 30,
+        difficulty: "medium",
+        status: "pending"
+      },
+      {
+        id: generateSubtaskId(),
+        title: "Review and adjust",
+        description: "Check your work and make any necessary adjustments",
+        estimatedDuration: 15,
+        difficulty: "easy",
+        status: "pending"
+      }
+    ],
+    suggestions: {
+      breakStrategy: "Take short breaks between subtasks to maintain focus",
+      timeManagement: "Start with the planning phase, then tackle the main task when your energy is highest"
+    },
+    aiProvider: 'Fallback'
+  };
 };
 
 // Helper function to generate unique IDs for subtasks
@@ -166,7 +279,6 @@ export const generateSubtaskId = () => {
 export const formatAIResponse = (aiResponse) => {
   console.log(' [AI Service] Formatting AI response...');
   
-  // Ensure each subtask has required fields
   const formattedSubtasks = aiResponse.subtasks.map(subtask => {
     console.log(' [AI Service] Processing subtask:', subtask.title);
     return {
@@ -174,22 +286,13 @@ export const formatAIResponse = (aiResponse) => {
       title: subtask.title,
       description: subtask.description,
       estimatedDuration: parseInt(subtask.estimatedDuration) || 15,
-      difficulty: ['easy', 'medium', 'hard'].includes(subtask.difficulty) 
-        ? subtask.difficulty 
-        : 'medium',
+      difficulty: subtask.difficulty || 'medium',
       status: 'pending'
     };
   });
 
-  const formatted = {
-    title: aiResponse.title,
-    subtasks: formattedSubtasks,
-    suggestions: {
-      breakStrategy: aiResponse.suggestions?.breakStrategy || 'Take breaks as needed',
-      timeManagement: aiResponse.suggestions?.timeManagement || 'Work at your own pace'
-    }
+  return {
+    ...aiResponse,
+    subtasks: formattedSubtasks
   };
-
-  console.log(' [AI Service] Formatted response:', formatted);
-  return formatted;
 };

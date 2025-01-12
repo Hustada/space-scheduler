@@ -106,30 +106,37 @@ const AITaskBreakdown = ({ mission, onUpdateMission }) => {
 
   return (
     <div className="space-y-4">
-      {!mission.subtasks ? (
-        <button
-          onClick={handleAIBreakdown}
-          disabled={isAnalyzing}
-          className="flex items-center justify-center w-full px-4 py-2 bg-space-primary/20 hover:bg-space-primary/40 rounded text-space-primary"
-        >
+      {!mission.subtasks?.length ? (
+        <div className="flex flex-col items-center justify-center p-6 bg-space-darker rounded-lg">
+          <SparklesIcon className="w-8 h-8 text-space-primary mb-4" />
+          <h3 className="text-lg font-space text-gray-200 mb-2">
+            AI Task Breakdown
+          </h3>
+          <p className="text-sm text-gray-400 text-center mb-4">
+            Let AI help break down this mission into manageable steps
+          </p>
           {isAnalyzing ? (
-            <>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                className="w-5 h-5 mr-2"
-              >
-                <SparklesIcon className="w-5 h-5" />
-              </motion.div>
-              Analyzing Task...
-            </>
+            <div className="flex flex-col items-center">
+              <div className="loader mb-2"></div>
+              <p className="text-sm text-space-primary animate-pulse">
+                AI is analyzing your mission...
+              </p>
+            </div>
           ) : (
-            <>
-              <SparklesIcon className="w-5 h-5 mr-2" />
-              AI Task Breakdown
-            </>
+            <button
+              onClick={handleAIBreakdown}
+              disabled={isAnalyzing}
+              className="mission-button hover:bg-space-primary/20"
+            >
+              Generate Breakdown
+            </button>
           )}
-        </button>
+          {error && (
+            <p className="text-sm text-red-400 mt-2">
+              {error}
+            </p>
+          )}
+        </div>
       ) : (
         <div className="space-y-4">
           <div className="flex justify-between items-center">

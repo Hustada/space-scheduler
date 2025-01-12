@@ -1,9 +1,14 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { 
+  getFirestore, 
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager
+} from 'firebase/firestore';
 import { getAnalytics } from "firebase/analytics";
+import { getAuth, browserLocalPersistence, setPersistence } from 'firebase/auth';
 
 // Your web app's Firebase configuration
-// Replace these with your Firebase config values
 const firebaseConfig = {
   apiKey: "AIzaSyAYyiJZKb-fQHIE7n6wiC5rKvY6YeWXHfk",
   authDomain: "space-scheduler.firebaseapp.com",
@@ -11,25 +16,26 @@ const firebaseConfig = {
   storageBucket: "space-scheduler.appspot.com",
   messagingSenderId: "127918975822",
   appId: "1:127918975822:web:24ca3b5dcf0a95202d4c1f",
-  measurementId: "G-V744VCPTJ9"
+  measurementId: "G-V744VCPTJ9",
+  actionCodeSettings: {
+    url: 'http://localhost:5173', // Update this for production
+    handleCodeInApp: true
+  }
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
+const auth = getAuth(app);
 
-// Initialize Firestore
-const db = getFirestore(app);
+// Set auth persistence to local
+setPersistence(auth, browserLocalPersistence);
 
-// Enable offline persistence
-enableIndexedDbPersistence(db)
-  .catch((err) => {
-    console.error('Error enabling persistence:', err);
-    if (err.code === 'failed-precondition') {
-      console.error('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-    } else if (err.code === 'unimplemented') {
-      console.error('The current browser doesn\'t support persistence.');
-    }
-  });
+// Initialize Firestore with persistence
+const db = initializeFirestore(app, {
+  cache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+});
 
-export { db, analytics };
+export { db, analytics, auth };

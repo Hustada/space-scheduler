@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import AITaskBreakdown from './AITaskBreakdown';
+import toast from 'react-hot-toast'; // Assuming you have react-hot-toast installed
 
 const MissionForm = ({ onSubmit, onClose }) => {
   // Helper function to get current time in HH:mm format
@@ -28,7 +29,15 @@ const MissionForm = ({ onSubmit, onClose }) => {
   };
 
   const handleMissionUpdate = (updatedMission) => {
-    setMission(updatedMission);
+    // Keep the user-entered duration if no subtasks
+    const duration = updatedMission.subtasks?.length > 0 
+      ? updatedMission.subtasks.reduce((total, subtask) => total + (parseInt(subtask.estimatedDuration) || 0), 0)
+      : mission.duration;
+
+    setMission({
+      ...updatedMission,
+      duration
+    });
   };
 
   return (
@@ -82,12 +91,18 @@ const MissionForm = ({ onSubmit, onClose }) => {
                   <label className="block text-gray-300 mb-2">Duration (minutes)</label>
                   <input
                     type="number"
-                    value={mission.duration}
+                    value={mission.subtasks?.length > 0 
+                      ? mission.subtasks.reduce((total, subtask) => total + (parseInt(subtask.estimatedDuration) || 0), 0)
+                      : mission.duration}
                     onChange={(e) => setMission({ ...mission, duration: parseInt(e.target.value) })}
                     className="mission-input w-full"
                     min="1"
                     required
+                    disabled={mission.subtasks?.length > 0}
                   />
+                  {mission.subtasks?.length > 0 && (
+                    <p className="text-sm text-space-gray mt-1">Duration is calculated from subtasks</p>
+                  )}
                 </div>
 
                 <div>

@@ -17,14 +17,33 @@ export default function PomodoroTimer({ activeMission }) {
     if (activeMission && activeMission.id !== prevMissionRef.current) {
       // New mission started
       clearInterval(timerRef.current);
-      const duration = activeMission.duration * 60;
-      setTimeLeft(duration);
+      // Get duration from mission
+      const duration = (activeMission.totalDuration || activeMission.duration || 25);
+      const durationInSeconds = duration * 60;
+      
+      console.log('Starting timer with duration:', { 
+        totalDuration: activeMission.totalDuration,
+        duration: activeMission.duration,
+        finalDuration: duration,
+        durationInSeconds 
+      });
+      
+      setTimeLeft(durationInSeconds);
       setIsBreak(false);
       setIsRunning(true);
-      startTimer(duration);
+      startTimer(durationInSeconds);
       prevMissionRef.current = activeMission.id;
     } else if (!activeMission && prevMissionRef.current) {
-      // Mission completed or cleared
+      // Mission completed or cleared - reset to default work time
+      console.log('Resetting timer to default work time');
+      clearInterval(timerRef.current);
+      setTimeLeft(DEFAULT_WORK_TIME);
+      setIsBreak(false);
+      setIsRunning(false);
+      prevMissionRef.current = null;
+    } else if (activeMission && !activeMission.started_at) {
+      // Mission was completed - reset to default work time
+      console.log('Mission completed, resetting timer');
       clearInterval(timerRef.current);
       setTimeLeft(DEFAULT_WORK_TIME);
       setIsBreak(false);
@@ -73,7 +92,8 @@ export default function PomodoroTimer({ activeMission }) {
     clearInterval(timerRef.current);
     setIsRunning(false);
     if (activeMission) {
-      setTimeLeft(activeMission.duration * 60);
+      const duration = (activeMission.totalDuration || activeMission.duration || 25);
+      setTimeLeft(duration * 60);
     } else {
       setTimeLeft(isBreak ? DEFAULT_BREAK_TIME : DEFAULT_WORK_TIME);
     }
@@ -96,7 +116,7 @@ export default function PomodoroTimer({ activeMission }) {
   };
 
   const progress = activeMission 
-    ? 1 - (timeLeft / (activeMission.duration * 60))
+    ? 1 - (timeLeft / ((activeMission.totalDuration || activeMission.duration || 25) * 60))
     : 1 - (timeLeft / (isBreak ? DEFAULT_BREAK_TIME : DEFAULT_WORK_TIME));
 
   return (
